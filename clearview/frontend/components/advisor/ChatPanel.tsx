@@ -10,7 +10,7 @@ import { useAdvisor } from "@/hooks/useAdvisor";
 interface ChatPanelProps {
   isOpen: boolean;
   onClose: () => void;
-  userId: string;
+  userId: string | null;
   onOpenCamera: () => void;
 }
 
@@ -31,7 +31,7 @@ export function ChatPanel({
 
   const handleSend = async () => {
     const text = input.trim();
-    if (!text || loading) return;
+    if (!text || loading || !userId) return;
     setInput("");
     await sendMessage(text);
   };
@@ -76,7 +76,7 @@ export function ChatPanel({
           className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4"
         >
           {messages.length === 0 ? (
-            <QuickChips onSelect={(msg) => void sendMessage(msg)} />
+            <QuickChips onSelect={(msg) => (userId ? void sendMessage(msg) : undefined)} />
           ) : null}
           <div className="flex flex-col space-y-4">
             {messages.map((m, i) => (
@@ -96,7 +96,8 @@ export function ChatPanel({
             <button
               type="button"
               onClick={onOpenCamera}
-              className="shrink-0 rounded-xl bg-bg-tertiary p-3 text-text-secondary transition-colors hover:bg-bg-primary hover:text-accent-blue"
+              disabled={!userId}
+              className="shrink-0 rounded-xl bg-bg-tertiary p-3 text-text-secondary transition-colors hover:bg-bg-primary hover:text-accent-blue disabled:pointer-events-none disabled:opacity-40"
               aria-label="Open camera"
             >
               <Camera className="h-5 w-5" />
@@ -111,14 +112,14 @@ export function ChatPanel({
                   void handleSend();
                 }
               }}
-              placeholder="Ask Vera…"
-              disabled={loading}
+              placeholder={userId ? "Ask Vera…" : "Set user id in localStorage first"}
+              disabled={loading || !userId}
               className="min-w-0 flex-1 rounded-xl bg-bg-tertiary px-4 py-3 text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 focus:ring-accent-blue/40 disabled:opacity-60"
             />
             <button
               type="button"
               onClick={() => void handleSend()}
-              disabled={loading || !input.trim()}
+              disabled={loading || !input.trim() || !userId}
               className="shrink-0 rounded-xl bg-accent-blue p-3 text-white transition-colors hover:bg-accent-blue-dim disabled:pointer-events-none disabled:opacity-50"
               aria-label="Send message"
             >

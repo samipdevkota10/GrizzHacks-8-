@@ -42,11 +42,9 @@ function GemIcon() {
   );
 }
 
-const DEMO_USER_ID = typeof window !== "undefined"
-  ? localStorage.getItem("clearview_user_id") || "DEMO"
-  : "DEMO";
+type SidebarProps = { userId: string | null };
 
-export function Sidebar() {
+export function Sidebar({ userId }: SidebarProps) {
   const pathname = usePathname();
   const [showVoiceCall, setShowVoiceCall] = useState(false);
 
@@ -83,8 +81,10 @@ export function Sidebar() {
       <div className="mt-auto space-y-4 border-t border-border-subtle px-4 py-5">
         <button
           type="button"
-          onClick={() => setShowVoiceCall(true)}
-          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-vera-primary/40 bg-vera-primary/20 px-4 py-2.5 text-sm font-semibold text-vera-primary transition-colors duration-200 hover:bg-vera-primary/30 animate-vera-pulse"
+          disabled={!userId}
+          title={!userId ? "Set clearview_user_id in localStorage (see dashboard hint)" : undefined}
+          onClick={() => userId && setShowVoiceCall(true)}
+          className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-full border border-vera-primary/40 bg-vera-primary/20 px-4 py-2.5 text-sm font-semibold text-vera-primary transition-colors duration-200 hover:bg-vera-primary/30 animate-vera-pulse disabled:pointer-events-none disabled:opacity-40"
         >
           <Phone className="size-[18px] shrink-0" strokeWidth={2} />
           Call Vera
@@ -109,9 +109,9 @@ export function Sidebar() {
       </div>
     </aside>
     <VoiceCallModal
-      isOpen={showVoiceCall}
+      isOpen={showVoiceCall && Boolean(userId)}
       onClose={() => setShowVoiceCall(false)}
-      userId={DEMO_USER_ID}
+      userId={userId ?? ""}
     />
     </>
   );

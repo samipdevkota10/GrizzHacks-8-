@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { MissingUserIdHint } from "@/components/layout/MissingUserIdHint";
+import { useClearviewUserId } from "@/hooks/useClearviewUserId";
 import { ChatMessage as ChatMessageComponent } from "@/components/advisor/ChatMessage";
 import { QuickChips } from "@/components/advisor/QuickChips";
 import { TypingIndicator } from "@/components/advisor/TypingIndicator";
@@ -11,24 +13,31 @@ import { useAdvisor } from "@/hooks/useAdvisor";
 import { useCamera } from "@/hooks/useCamera";
 import { Send, Camera } from "lucide-react";
 
-const DEMO_USER_ID = typeof window !== "undefined"
-  ? localStorage.getItem("clearview_user_id") || "DEMO"
-  : "DEMO";
-
 export default function AdvisorPage() {
-  const { messages, loading, sendMessage } = useAdvisor(DEMO_USER_ID);
-  const { result: purchaseResult, clearResult } = useCamera(DEMO_USER_ID);
+  const { hydrated, userId } = useClearviewUserId();
+  const { messages, loading, sendMessage } = useAdvisor(userId);
+  const { result: purchaseResult, clearResult } = useCamera(userId);
   const [input, setInput] = useState("");
   const [showCamera, setShowCamera] = useState(false);
 
   const handleSend = () => {
-    if (!input.trim()) return;
+    if (!input.trim() || !userId) return;
     sendMessage(input.trim());
     setInput("");
   };
 
+  if (hydrated && !userId) {
+    return (
+      <DashboardLayout title="AI Advisor" userId={userId}>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center py-12">
+          <MissingUserIdHint />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
-    <DashboardLayout title="AI Advisor">
+    <DashboardLayout title="AI Advisor" userId={userId}>
       <div className="mx-auto max-w-3xl">
         <div className="glass-card flex flex-col" style={{ height: "calc(100vh - 160px)" }}>
           <div className="border-b border-border-subtle p-4">
@@ -57,7 +66,7 @@ export default function AdvisorPage() {
                 <p className="text-sm text-text-secondary mb-6 max-w-sm">
                   I know everything about your finances. Ask me anything — I&apos;ll give you real answers with your real numbers.
                 </p>
-                <QuickChips onSelect={sendMessage} />
+                <QuickChips onSelect={(msg) => userId && void sendMessage(msg)} />
               </div>
             )}
 
@@ -83,7 +92,8 @@ export default function AdvisorPage() {
               <button
                 type="button"
                 onClick={() => setShowCamera(true)}
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-bg-tertiary text-text-secondary hover:text-accent-blue transition-colors cursor-pointer"
+                disabled={!userId}
+                className="flex h-11 w-11 items-center justify-center rounded-xl bg-bg-tertiary text-text-secondary transition-colors hover:text-accent-blue disabled:pointer-events-none disabled:opacity-40 cursor-pointer"
               >
                 <Camera className="h-5 w-5" />
               </button>
@@ -92,13 +102,13 @@ export default function AdvisorPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                placeholder="Ask Vera anything..."
+                placeholder={userId ? "Ask Vera anything..." : "Set user id first"}
                 className="flex-1 rounded-xl bg-bg-tertiary px-4 py-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent-blue/40"
               />
               <button
                 type="button"
                 onClick={handleSend}
-                disabled={!input.trim() || loading}
+                disabled={!input.trim() || loading || !userId}
                 className="flex h-11 w-11 items-center justify-center rounded-xl bg-accent-blue text-white hover:bg-accent-blue-dim transition-colors cursor-pointer disabled:opacity-50"
               >
                 <Send className="h-5 w-5" />
@@ -111,7 +121,7 @@ export default function AdvisorPage() {
       <CameraModal
         isOpen={showCamera}
         onClose={() => setShowCamera(false)}
-        userId={DEMO_USER_ID}
+        userId={userId!}
         onResult={() => setShowCamera(false)}
       />
     </DashboardLayout>

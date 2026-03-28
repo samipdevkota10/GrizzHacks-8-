@@ -5,6 +5,7 @@ from bson import ObjectId
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
 
 from database import get_database
+from objectid_util import parse_user_object_id
 from services.financial_context import build_financial_context
 from services.gemini_service import gemini_service
 
@@ -19,7 +20,8 @@ async def chat(body: dict):
     
     if not user_id or not message:
         raise HTTPException(400, "user_id and message are required")
-    
+
+    uid = parse_user_object_id(user_id)
     db = get_database()
     context = await build_financial_context(user_id)
     
@@ -45,7 +47,7 @@ async def chat(body: dict):
     else:
         session_id = str(uuid4())
         result = await db.ai_conversations.insert_one({
-            "user_id": ObjectId(user_id),
+            "user_id": uid,
             "session_id": session_id,
             "mode": "text",
             "messages": new_messages,
@@ -65,15 +67,16 @@ async def chat(body: dict):
 async def purchase_check(image: UploadFile = File(...), user_id: str = Form(...)):
     if not image.content_type or not image.content_type.startswith("image/"):
         raise HTTPException(400, "File must be an image")
-    
+
+    uid = parse_user_object_id(user_id)
     image_bytes = await image.read()
     context = await build_financial_context(user_id)
     result = await gemini_service.purchase_vision_check(image_bytes, context)
-    
+
     db = get_database()
     now = datetime.utcnow()
     conv_result = await db.ai_conversations.insert_one({
-        "user_id": ObjectId(user_id),
+        "user_id": uid,
         "session_id": str(uuid4()),
         "mode": "text",
         "messages": [{
@@ -93,8 +96,9 @@ async def purchase_check(image: UploadFile = File(...), user_id: str = Form(...)
 @router.get("/conversations/{user_id}")
 async def get_conversations(user_id: str, limit: int = 10):
     db = get_database()
+    uid = parse_user_object_id(user_id)
     convs = await db.ai_conversations.find(
-        {"user_id": ObjectId(user_id)}
+        {"user_id": uid}
     ).sort("started_at", -1).to_list(limit)
     
     for c in convs:

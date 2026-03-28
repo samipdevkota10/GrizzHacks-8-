@@ -5,6 +5,7 @@ from bson import ObjectId
 from fastapi import APIRouter, HTTPException
 
 from database import get_database
+from objectid_util import parse_user_object_id
 from services.elevenlabs_service import elevenlabs_service
 from services.financial_context import build_financial_context
 
@@ -30,14 +31,15 @@ async def create_session(body: dict):
     if not user_id:
         raise HTTPException(400, "user_id is required")
 
+    uid = parse_user_object_id(user_id)
     signed_url_data = await elevenlabs_service.get_signed_url()
-    
+
     db = get_database()
     context = await build_financial_context(user_id)
-    
+
     session_id = str(uuid4())
     conversation = {
-        "user_id": ObjectId(user_id),
+        "user_id": uid,
         "session_id": session_id,
         "mode": mode,
         "messages": [],

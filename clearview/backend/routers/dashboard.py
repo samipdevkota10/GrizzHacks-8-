@@ -4,6 +4,7 @@ from bson import ObjectId
 from fastapi import APIRouter, HTTPException
 
 from database import get_database
+from objectid_util import parse_user_object_id
 
 router = APIRouter(prefix="/api", tags=["dashboard"])
 
@@ -25,23 +26,24 @@ def serialize_list(docs):
 @router.get("/dashboard/{user_id}")
 async def get_dashboard(user_id: str):
     db = get_database()
+    uid = parse_user_object_id(user_id)
 
-    user = await db.users.find_one({"_id": ObjectId(user_id)})
+    user = await db.users.find_one({"_id": uid})
     if not user:
         raise HTTPException(404, "User not found")
 
-    profile = await db.financial_profiles.find_one({"user_id": ObjectId(user_id)})
-    accounts = await db.accounts.find({"user_id": ObjectId(user_id)}).to_list(20)
-    subscriptions = await db.subscriptions.find({"user_id": ObjectId(user_id)}).to_list(50)
-    recent_transactions = await db.transactions.find({"user_id": ObjectId(user_id)}).sort(
+    profile = await db.financial_profiles.find_one({"user_id": uid})
+    accounts = await db.accounts.find({"user_id": uid}).to_list(20)
+    subscriptions = await db.subscriptions.find({"user_id": uid}).to_list(50)
+    recent_transactions = await db.transactions.find({"user_id": uid}).sort(
         "date", -1
     ).to_list(50)
-    virtual_cards = await db.virtual_cards.find({"user_id": ObjectId(user_id)}).to_list(20)
+    virtual_cards = await db.virtual_cards.find({"user_id": uid}).to_list(20)
     pending_alerts = await db.anomaly_alerts.find(
-        {"user_id": ObjectId(user_id), "status": "pending"}
+        {"user_id": uid, "status": "pending"}
     ).sort("created_at", -1).to_list(20)
     notifications = await db.notifications.find(
-        {"user_id": ObjectId(user_id), "is_read": False}
+        {"user_id": uid, "is_read": False}
     ).sort("created_at", -1).to_list(20)
 
     now = datetime.utcnow()

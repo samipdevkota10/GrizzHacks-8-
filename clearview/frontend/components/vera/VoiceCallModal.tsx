@@ -82,7 +82,7 @@ export function VoiceCallModal({ isOpen, onClose, userId }: VoiceCallModalProps)
   }, [clearScheduledTimeouts, deleteSession, teardownMedia]);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || !userId) return;
 
     let cancelled = false;
 

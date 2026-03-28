@@ -2,7 +2,9 @@
 
 import { useDashboard } from "@/hooks/useDashboard";
 import { useAlerts } from "@/hooks/useAlerts";
+import { useClearviewUserId } from "@/hooks/useClearviewUserId";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { MissingUserIdHint } from "@/components/layout/MissingUserIdHint";
 import { AnomalyAlert } from "@/components/alerts/AnomalyAlert";
 import { NetWorthCard } from "@/components/dashboard/NetWorthCard";
 import { SpendingDonut } from "@/components/dashboard/SpendingDonut";
@@ -13,10 +15,6 @@ import { TransactionFeed } from "@/components/dashboard/TransactionFeed";
 import { QuickStats } from "@/components/dashboard/QuickStats";
 import { UpcomingBills } from "@/components/dashboard/UpcomingBills";
 import { LoadingSkeleton } from "@/components/shared/LoadingSkeleton";
-
-const DEMO_USER_ID = typeof window !== "undefined"
-  ? localStorage.getItem("clearview_user_id") || "DEMO"
-  : "DEMO";
 
 const CATEGORY_COLORS: Record<string, string> = {
   food: "#FF6B6B",
@@ -39,12 +37,23 @@ const MOCK_MONTHLY_DATA = [
 ];
 
 export default function DashboardPage() {
-  const { data, loading, error, refetch } = useDashboard(DEMO_USER_ID);
+  const { hydrated, userId } = useClearviewUserId();
+  const { data, loading, error, refetch } = useDashboard(hydrated, userId);
   const { handleAction } = useAlerts(refetch);
+
+  if (hydrated && !userId) {
+    return (
+      <DashboardLayout title="Dashboard" userId={userId}>
+        <div className="flex min-h-[50vh] flex-col items-center justify-center py-12">
+          <MissingUserIdHint />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   if (error) {
     return (
-      <DashboardLayout title="Dashboard">
+      <DashboardLayout title="Dashboard" userId={userId}>
         <div className="flex flex-col items-center justify-center h-[60vh] text-center">
           <div className="text-6xl mb-4 text-negative font-[family-name:var(--font-display)]">!</div>
           <h2 className="text-xl font-semibold mb-2">Connection Error</h2>
@@ -64,7 +73,7 @@ export default function DashboardPage() {
 
   if (loading || !data) {
     return (
-      <DashboardLayout title="Dashboard">
+      <DashboardLayout title="Dashboard" userId={userId}>
         <div className="space-y-6">
           <LoadingSkeleton className="h-16 w-full" />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -92,6 +101,7 @@ export default function DashboardPage() {
   return (
     <DashboardLayout
       title="Dashboard"
+      userId={userId}
       alertCount={data.pending_alerts.length + data.notifications.length}
     >
       <div className="space-y-6">

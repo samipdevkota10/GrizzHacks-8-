@@ -4,11 +4,12 @@ import { useState, useCallback, useEffect } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export function useVirtualCards(userId: string) {
+export function useVirtualCards(hydrated: boolean, userId: string | null) {
   const [cards, setCards] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchCards = useCallback(async () => {
+    if (!userId) return;
     try {
       setLoading(true);
       const res = await fetch(`${API_URL}/api/cards/${userId}`);
@@ -22,28 +23,37 @@ export function useVirtualCards(userId: string) {
   }, [userId]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    if (!userId) {
+      setCards([]);
+      setLoading(false);
+      return;
+    }
     fetchCards();
-  }, [fetchCards]);
+  }, [hydrated, userId, fetchCards]);
 
   const pauseCard = useCallback(
     async (cardId: string) => {
+      if (!userId) return;
       await fetch(`${API_URL}/api/cards/${cardId}/pause`, { method: "PATCH" });
       fetchCards();
     },
-    [fetchCards],
+    [userId, fetchCards],
   );
 
   const destroyCard = useCallback(
     async (cardId: string) => {
+      if (!userId) return;
       await fetch(`${API_URL}/api/cards/${cardId}`, { method: "DELETE" });
       // Don't refetch immediately — let animation play
       setTimeout(fetchCards, 1000);
     },
-    [fetchCards],
+    [userId, fetchCards],
   );
 
   const createCard = useCallback(
     async (data: any) => {
+      if (!userId) return;
       await fetch(`${API_URL}/api/cards`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

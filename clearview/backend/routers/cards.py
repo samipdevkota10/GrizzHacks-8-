@@ -2,6 +2,7 @@ from datetime import datetime
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException
 from database import get_database
+from objectid_util import parse_user_object_id
 from services.stripe_service import stripe_service
 
 router = APIRouter(prefix="/api/cards", tags=["cards"])
@@ -20,7 +21,8 @@ def serialize(doc):
 @router.get("/{user_id}")
 async def get_cards(user_id: str):
     db = get_database()
-    cards = await db.virtual_cards.find({"user_id": ObjectId(user_id)}).to_list(50)
+    uid = parse_user_object_id(user_id)
+    cards = await db.virtual_cards.find({"user_id": uid}).to_list(50)
     return {"cards": [serialize(c) for c in cards]}
 
 
@@ -28,14 +30,15 @@ async def get_cards(user_id: str):
 async def create_card(body: dict):
     db = get_database()
     user_id = body["user_id"]
-    
+    uid = parse_user_object_id(user_id)
+
     stripe_card = await stripe_service.create_card(
         body.get("merchant_name", ""),
         body.get("spending_limit_monthly", 100),
     )
     
     card = {
-        "user_id": ObjectId(user_id),
+        "user_id": uid,
         "stripe_card_id": stripe_card["id"],
         "nickname": body.get("nickname", body.get("merchant_name", "")),
         "merchant_name": body.get("merchant_name", ""),

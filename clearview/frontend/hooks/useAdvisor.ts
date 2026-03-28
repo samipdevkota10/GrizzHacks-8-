@@ -10,13 +10,14 @@ export interface Message {
   timestamp: string;
 }
 
-export function useAdvisor(userId: string) {
+export function useAdvisor(userId: string | null) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [loading, setLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
 
   const sendMessage = useCallback(
     async (text: string) => {
+      if (!userId) return;
       const userMsg: Message = {
         role: "user",
         content: text,

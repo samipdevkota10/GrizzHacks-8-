@@ -1,5 +1,3 @@
-export const DEMO_USER_ID = "DEMO_USER";
-
 export const CATEGORY_COLORS: Record<string, string> = {
   food: "#FF6B6B",
   transport: "#4ECDC4",

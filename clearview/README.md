@@ -131,14 +131,19 @@ STRIPE_CARDHOLDER_ID=
 FRONTEND_URL=http://localhost:3000
 ```
 
+**Important:** Replace `<user>`, `<password>`, and **`<cluster>`** with real values from Atlas (Connect → Drivers). The cluster host must look like `clearview.abc123.mongodb.net` — **never** leave the literal text `<cluster>` in the URI. If you see `ConfigurationError` / DNS errors mentioning `_mongodb._tcp.<cluster>.mongodb.net`, your URI still has the placeholder, or a shell variable is overriding `.env` (run `echo $MONGODB_URI` — if it shows `<cluster>`, run `unset MONGODB_URI` and try again).
+
 Seed the database and start the server:
 
 ```bash
+python diagnose_mongo.py   # optional: verify Atlas connectivity before seeding
 python seed_data.py
 uvicorn main:app --reload --port 8000
 ```
 
 The seed script will print the user ID -- copy it for the frontend.
+
+**MongoDB `ServerSelectionTimeoutError` / connection timeout:** DNS is working but TCP to Atlas port `27017` is blocked or not allowlisted. In [Atlas](https://cloud.mongodb.com) go to **Network Access** → **Add IP Address** → **Add Current IP Address**, or temporarily `0.0.0.0/0` (dev only). Ensure the cluster is **Active** (not paused). If you are on restricted Wi‑Fi, try a phone hotspot.
 
 ### 3. Frontend Setup
 

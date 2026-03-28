@@ -1,11 +1,14 @@
 from datetime import datetime, timedelta
+
 from bson import ObjectId
+
 from database import get_database
+from objectid_util import parse_user_object_id
 
 
 async def build_financial_context(user_id: str) -> dict:
     db = get_database()
-    uid = ObjectId(user_id)
+    uid = parse_user_object_id(user_id)
 
     user = await db.users.find_one({"_id": uid})
     profile = await db.financial_profiles.find_one({"user_id": uid})

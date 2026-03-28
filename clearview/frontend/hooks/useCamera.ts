@@ -13,13 +13,17 @@ interface PurchaseResult {
   conversation_id: string;
 }
 
-export function useCamera(userId: string) {
+export function useCamera(userId: string | null) {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PurchaseResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const analyzeImage = useCallback(
     async (file: File) => {
+      if (!userId) {
+        setError("Set clearview_user_id in localStorage first.");
+        return null;
+      }
       setLoading(true);
       setError(null);
       try {

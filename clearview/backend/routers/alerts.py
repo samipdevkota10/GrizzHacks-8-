@@ -2,6 +2,7 @@ from datetime import datetime
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException
 from database import get_database
+from objectid_util import parse_user_object_id
 from services.stripe_service import stripe_service
 
 router = APIRouter(prefix="/api/alerts", tags=["alerts"])
@@ -20,8 +21,9 @@ def serialize(doc):
 @router.get("/{user_id}")
 async def get_alerts(user_id: str):
     db = get_database()
+    uid = parse_user_object_id(user_id)
     alerts = await db.anomaly_alerts.find(
-        {"user_id": ObjectId(user_id), "status": "pending"}
+        {"user_id": uid, "status": "pending"}
     ).sort("created_at", -1).to_list(20)
     return {"alerts": [serialize(a) for a in alerts]}
 

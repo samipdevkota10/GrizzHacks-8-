@@ -6,7 +6,7 @@ import { ChatPanel } from "@/components/advisor/ChatPanel";
 
 interface AIPanelWrapperProps {
   children: React.ReactNode;
-  userId: string;
+  userId: string | null;
 }
 
 export function AIPanelWrapper({ children, userId }: AIPanelWrapperProps) {

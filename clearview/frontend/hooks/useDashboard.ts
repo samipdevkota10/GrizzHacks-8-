@@ -5,12 +5,13 @@ import type { DashboardData } from "@/lib/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
-export function useDashboard(userId: string) {
+export function useDashboard(hydrated: boolean, userId: string | null) {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const fetchDashboard = useCallback(async () => {
+    if (!userId) return;
     try {
       setLoading(true);
       setError(null);
@@ -26,8 +27,15 @@ export function useDashboard(userId: string) {
   }, [userId]);
 
   useEffect(() => {
+    if (!hydrated) return;
+    if (!userId) {
+      setLoading(false);
+      setData(null);
+      setError(null);
+      return;
+    }
     fetchDashboard();
-  }, [fetchDashboard]);
+  }, [hydrated, userId, fetchDashboard]);
 
   return { data, loading, error, refetch: fetchDashboard };
 }

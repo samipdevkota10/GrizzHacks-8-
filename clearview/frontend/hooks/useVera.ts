@@ -11,7 +11,7 @@ interface VoiceMessage {
   content: string;
 }
 
-export function useVera(userId: string) {
+export function useVera(userId: string | null) {
   const [callState, setCallState] = useState<CallState>("idle");
   const [messages, setMessages] = useState<VoiceMessage[]>([]);
   const [isMuted, setIsMuted] = useState(false);
@@ -20,6 +20,10 @@ export function useVera(userId: string) {
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
   const startCall = useCallback(async () => {
+    if (!userId) {
+      setCallState("idle");
+      return;
+    }
     setCallState("connecting");
     setMessages([]);
     setDuration(0);
