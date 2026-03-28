@@ -57,6 +57,7 @@ async def seed() -> None:
             },
             "onboarding_complete": True,
             "solana_wallet_pubkey": None,
+            "phone_number": None,
         }
     )
 

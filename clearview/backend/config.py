@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     STRIPE_CARDHOLDER_ID: str = ""
     FRONTEND_URL: str = "http://localhost:3000"
 
+    ELEVENLABS_PHONE_NUMBER_ID: str = ""
+    USER_PHONE_NUMBER: str = ""
+    FRAUD_AMOUNT_THRESHOLD: float = 200.0
+
     model_config = SettingsConfigDict(
         env_file=_BACKEND_DIR / ".env",
         env_file_encoding="utf-8",

@@ -41,3 +41,4 @@ class User(BaseModel):
     }
     onboarding_complete: bool = False
     solana_wallet_pubkey: str | None = None
+    phone_number: str | None = None
