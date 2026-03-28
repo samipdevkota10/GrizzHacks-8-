@@ -1,8 +1,8 @@
-# Clearview -- Personal Finance OS
+# Vera Fund — Your All-in-One Financial Advisor
 
-> **Every dollar, crystal clear.**
+> **Smart money management for everyone.**
 
-Clearview is a full-stack personal finance dashboard built for GrizzHacks 8. It combines an AI financial advisor, virtual card management, subscription creep detection, and voice interaction into a single, beautifully designed dark-mode interface.
+Vera Fund is a full-stack personal finance platform built for GrizzHacks 8. It combines AI-powered financial advice, spending analytics, purchase affordability analysis, virtual card management, and goal tracking into a single, polished interface designed to feel like a real product.
 
 ---
 
@@ -15,30 +15,60 @@ Clearview is a full-stack personal finance dashboard built for GrizzHacks 8. It 
 - [API Reference](#api-reference)
 - [Project Structure](#project-structure)
 - [Design System](#design-system)
-- [Demo Script](#demo-script)
+- [User Flow](#user-flow)
 - [Environment Variables](#environment-variables)
 
 ---
 
 ## Features
 
-### F-001: Financial Dashboard
-Full-screen dark fintech dashboard with animated charts, real-time data, and at-a-glance financial health. Includes net worth count-up animation, spending donut chart, monthly trend area chart, budget progress bars, subscription grid, transaction feed, and upcoming bills strip.
+### Landing Page
+Marketing-grade landing page with animated sections: hero, feature highlights, how it works, integration partners, pricing tiers, testimonials, and blog. Smooth scroll-triggered animations powered by Framer Motion.
 
-### F-002: AI Financial Advisor (Vera)
-Chat interface powered by Gemini 1.5 Flash. Every response is grounded in the user's actual financial data -- zero generic advice. Full transaction history, balances, subscriptions, and budget data are injected as context on every API call.
+### Authentication
+Login and signup with email/password or social providers (Google, Apple). Animated form transitions between login and signup modes. Links to Terms & Conditions and Privacy Policy.
 
-### F-003: "Can I Afford This?" Camera
-Photograph any product. Gemini Vision extracts the price. Vera gives a financial verdict (YES / HOLD OFF / NO) using your real discretionary budget, upcoming bills, and checking balance.
+### Multi-Step Onboarding
+Chase-inspired onboarding wizard with four steps:
+1. **Financial Goals** — select from emergency fund, investing, debt payoff, budgeting, retirement
+2. **Cards** — add credit and debit cards with card name, last 4 digits, and type
+3. **Bank Connection** — connect accounts via Plaid (sandbox mode, no real bank data accessed)
+4. **Loans & Mortgages** — declare outstanding debts with balance, APR, and monthly payment
 
-### F-004: Virtual Card Manager (Stripe Issuing)
-Create merchant-locked virtual cards with hard spending limits. Pause cards temporarily or destroy them permanently with a dramatic animation. No phone calls, no cancellation portals -- one click and the merchant can never charge you again.
+### Dashboard Overview
+Bloomberg/Tableau-inspired financial dashboard with data-dense cards:
+- **Quick Stats** — net worth, monthly income, spending, and savings rate with trend indicators
+- **Income vs Spending Chart** — 6-month area chart comparing income and expenditures
+- **Spending Breakdown** — donut chart with category-level detail
+- **Budget Progress** — per-category progress bars with over-budget warnings
+- **Recent Transactions** — live feed with real merchant logos (via Clearbit)
+- **Financial Goals** — progress tracking toward savings targets
+- **Upcoming Bills** — due dates and autopay status
 
-### F-005: Subscription Creep Detection
-Automatically detects unannounced price increases by comparing incoming charges against the last known amount. Triggers a prominent alert banner with three action options: Approve Once, Update Limit, or Decline & Pause Card.
+### Purchase Analyzer
+Upload a photo of something you want to buy. The AI analyzes:
+- Whether you can afford it based on remaining budget
+- How many **hours of your work** it costs (based on your after-tax hourly rate)
+- Percentage impact on monthly income
+- Detailed financial breakdown with recommendation
 
-### F-006: Vera Voice Call (ElevenLabs)
-Full-screen voice call interface with animated Vera avatar. Supports text-to-speech responses and real-time voice conversations via ElevenLabs Conversational AI.
+### Cards Management
+Visual card interface showing credit and debit cards with:
+- Card number reveal/hide toggle
+- Freeze/unfreeze capability
+- Credit utilization bars with color-coded status
+
+### AI Advisor (Vera)
+Chat interface with Vera, the AI financial advisor powered by Gemini 1.5 Flash. Every response is grounded in the user's actual financial data. Includes suggested question chips and a typing indicator.
+
+### Goals & Debt Tracking
+Progress visualization for financial goals (emergency fund, vacation, debt payoff) plus loan tracking with payoff percentages and monthly payment details.
+
+### Bills & Subscriptions
+Comprehensive view of recurring payments: upcoming bills with autopay status, and active subscriptions with real brand logos.
+
+### Legal Pages
+Full Terms & Conditions (11 sections) and Privacy Policy (10 sections) covering data handling, AI disclaimer, third-party integrations, and user rights.
 
 ---
 
@@ -46,16 +76,19 @@ Full-screen voice call interface with animated Vera avatar. Supports text-to-spe
 
 | Layer | Technology | Purpose |
 |-------|-----------|---------|
-| Frontend | Next.js 15 + TypeScript | App framework with server components |
+| Frontend | Next.js 15 + React 19 + TypeScript | App framework with app router |
 | Styling | Tailwind CSS v4 | Utility-first CSS with custom design tokens |
-| Charts | Recharts | Animated financial data visualization |
+| Charts | Recharts | Area charts, pie charts, progress bars |
+| Animations | Framer Motion (`motion`) | Scroll-triggered, staggered entry, hover effects |
+| File Upload | react-dropzone | Drag & drop image upload for Purchase Analyzer |
 | Icons | Lucide React | Consistent SVG icon set |
+| Logos | Clearbit Logo API | Real merchant/brand logos in transactions |
 | Backend | FastAPI (Python 3.11+) | Async REST API server |
-| Database | MongoDB Atlas (Motor) | Document database with async driver |
+| Database | MongoDB (Atlas or local) | Document database with async driver (Motor) |
 | AI | Google Gemini 1.5 Flash | Text + Vision multimodal LLM |
 | Voice | ElevenLabs Conversational AI | Text-to-speech and voice sessions |
-| Cards | Stripe Issuing (sandbox) | Virtual card creation and management |
-| Fonts | Syne, DM Sans, JetBrains Mono | Display, body, and monospace fonts |
+| Cards API | Stripe Issuing (sandbox) | Virtual card creation and management |
+| Fonts | Inter, Playfair Display, JetBrains Mono | Body, display, and monospace fonts |
 
 ---
 
@@ -64,20 +97,25 @@ Full-screen voice call interface with animated Vera avatar. Supports text-to-spe
 ```
 Browser (Next.js 15)
     |
-    |-- /dashboard      --> GET /api/dashboard/{user_id}
-    |-- /advisor        --> POST /api/advisor/chat
-    |                   --> POST /api/advisor/purchase-check
-    |-- /cards          --> GET/POST/PATCH/DELETE /api/cards
-    |-- Voice Call      --> POST /api/voice/session
-    |-- Alerts          --> GET /api/alerts/{user_id}
-    |                   --> POST /api/alerts/{alert_id}/action
+    |-- /                   Landing page (marketing)
+    |-- /auth               Login / Signup
+    |-- /onboarding         4-step onboarding wizard
+    |-- /dashboard          Financial overview (sidebar layout)
+    |   |-- /transactions   Full transaction history with filters
+    |   |-- /cards          Credit & debit card management
+    |   |-- /analyzer       Purchase photo upload → AI analysis
+    |   |-- /goals          Financial goals + loan tracking
+    |   |-- /advisor        AI chat with Vera
+    |   |-- /bills          Bills & subscription tracking
+    |-- /terms              Terms & Conditions
+    |-- /privacy            Privacy Policy
     |
 FastAPI Backend (port 8000)
     |
-    |-- Gemini 1.5 Flash (AI advisor + vision)
+    |-- Gemini 1.5 Flash (AI advisor + vision analysis)
     |-- ElevenLabs (TTS + voice sessions)
     |-- Stripe Issuing (virtual cards)
-    |-- MongoDB Atlas (all data)
+    |-- MongoDB (all persistent data)
 ```
 
 ---
@@ -88,7 +126,7 @@ FastAPI Backend (port 8000)
 
 - Python 3.11+ (`python --version`)
 - Node.js 18+ (`node --version`)
-- MongoDB Atlas account (free tier works)
+- MongoDB Atlas account (free tier) or local MongoDB
 - Google Gemini API key
 
 ### 1. Clone the Repository
@@ -116,34 +154,23 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Create `backend/.env` with your credentials:
+Create `backend/.env` (see `.env.example`):
 
 ```env
 MONGODB_URI=mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority
 MONGODB_DB_NAME=clearview_db
 GEMINI_API_KEY=your-gemini-api-key
 GEMINI_MODEL=gemini-1.5-flash
-ELEVENLABS_API_KEY=
-ELEVENLABS_AGENT_ID=
-ELEVENLABS_VERA_VOICE_ID=
-STRIPE_SECRET_KEY=
-STRIPE_CARDHOLDER_ID=
-FRONTEND_URL=http://localhost:3000
 ```
-
-**Important:** Replace `<user>`, `<password>`, and **`<cluster>`** with real values from Atlas (Connect → Drivers). The cluster host must look like `clearview.abc123.mongodb.net` — **never** leave the literal text `<cluster>` in the URI. If you see `ConfigurationError` / DNS errors mentioning `_mongodb._tcp.<cluster>.mongodb.net`, your URI still has the placeholder, or a shell variable is overriding `.env` (run `echo $MONGODB_URI` — if it shows `<cluster>`, run `unset MONGODB_URI` and try again).
 
 Seed the database and start the server:
 
 ```bash
-python diagnose_mongo.py   # optional: verify Atlas connectivity before seeding
 python seed_data.py
 uvicorn main:app --reload --port 8000
 ```
 
-The seed script will print the user ID -- copy it for the frontend.
-
-**MongoDB `ServerSelectionTimeoutError` / connection timeout:** DNS is working but TCP to Atlas port `27017` is blocked or not allowlisted. In [Atlas](https://cloud.mongodb.com) go to **Network Access** → **Add IP Address** → **Add Current IP Address**, or temporarily `0.0.0.0/0` (dev only). Ensure the cluster is **Active** (not paused). If you are on restricted Wi‑Fi, try a phone hotspot.
+For local MongoDB setup, see [LOCAL_MONGO_SETUP.md](../LOCAL_MONGO_SETUP.md).
 
 ### 3. Frontend Setup
 
@@ -155,23 +182,12 @@ npm install
 
 # Create .env.local
 echo "NEXT_PUBLIC_API_URL=http://localhost:8000" > .env.local
-```
 
-Start the development server:
-
-```bash
+# Start development server
 npm run dev
 ```
 
-### 4. Connect Frontend to Seeded Data
-
-Open http://localhost:3000 in Chrome. Open the browser console and set the demo user ID:
-
-```javascript
-localStorage.setItem("clearview_user_id", "<USER_ID_FROM_SEED_OUTPUT>");
-```
-
-Refresh the page. The dashboard should populate with Alex Chen's financial data.
+Open http://localhost:3000. Click **Get Started** to begin the onboarding flow, or **Log In** to go directly to the dashboard.
 
 ---
 
@@ -179,38 +195,32 @@ Refresh the page. The dashboard should populate with Alex Chen's financial data.
 
 ### Health Check
 ```
-GET /api/health
-Response: { "status": "ok" }
+GET /api/health → { "status": "ok" }
 ```
 
 ### Dashboard
 ```
-GET /api/dashboard/{user_id}
-Response: Full dashboard payload (user, accounts, transactions, subscriptions,
-          virtual cards, alerts, monthly summary, quick stats, net worth)
+GET /api/dashboard/{user_id} → Full financial payload
 ```
 
 ### AI Advisor
 ```
 POST /api/advisor/chat
 Body: { "user_id": string, "message": string, "conversation_id"?: string }
-Response: { "response": string, "conversation_id": string }
 
 POST /api/advisor/purchase-check
 Body: multipart/form-data { image: File, user_id: string }
-Response: { "product": string, "price": number, "verdict": string, "reasoning": string }
 
 GET /api/advisor/conversations/{user_id}?limit=10
-Response: { "conversations": [...] }
 ```
 
 ### Virtual Cards
 ```
 GET    /api/cards/{user_id}
-POST   /api/cards                          Body: { user_id, merchant_name, spending_limit_monthly, ... }
-PATCH  /api/cards/{card_id}/pause          (toggles pause/resume)
-DELETE /api/cards/{card_id}                (permanent destroy)
-PATCH  /api/cards/{card_id}/limit          Body: { spending_limit_monthly: number }
+POST   /api/cards              Body: { user_id, merchant_name, spending_limit_monthly }
+PATCH  /api/cards/{card_id}/pause
+DELETE /api/cards/{card_id}
+PATCH  /api/cards/{card_id}/limit  Body: { spending_limit_monthly: number }
 ```
 
 ### Anomaly Alerts
@@ -220,13 +230,6 @@ POST /api/alerts/{alert_id}/action
      Body: { "action": "approve_once" | "approve_update_limit" | "decline_pause" }
 ```
 
-### Voice
-```
-POST   /api/voice/tts                      Body: { "text": string, "user_id": string }
-POST   /api/voice/session                  Body: { "user_id": string, "mode": "voice" }
-DELETE /api/voice/session/{session_token}
-```
-
 ---
 
 ## Project Structure
@@ -234,65 +237,67 @@ DELETE /api/voice/session/{session_token}
 ```
 clearview/
   backend/
-    config.py                    Pydantic Settings (env vars)
-    database.py                  Motor async MongoDB connection
-    main.py                      FastAPI app + CORS + router loading
-    seed_data.py                 Full mock data seeder (Alex Chen)
-    requirements.txt             Python dependencies
+    main.py                      FastAPI app entry point
+    config.py                    Pydantic settings (env vars)
+    database.py                  MongoDB async connection (Motor)
+    seed_data.py                 Demo data seeder
+    diagnose_mongo.py            Atlas connectivity checker
     models/
-      user.py                    User + FinancialProfile models
+      user.py                    User + FinancialProfile
       transaction.py             Transaction model
       virtual_card.py            VirtualCard model
       subscription.py            Subscription model
       anomaly_alert.py           AnomalyAlert model
       account.py                 Account model
-      conversation.py            AIConversation + Message models
-      notification.py            Notification model
+      conversation.py            AIConversation + Message
     routers/
       dashboard.py               GET /api/dashboard/{user_id}
-      advisor.py                 Chat + purchase-check + conversations
+      advisor.py                 AI chat + purchase analysis
       cards.py                   Virtual card CRUD
       alerts.py                  Anomaly alert actions
       voice.py                   TTS + voice session management
     services/
       gemini_service.py          Gemini 1.5 Flash integration
-      financial_context.py       Builds financial snapshot for AI
+      financial_context.py       Financial snapshot builder for AI
       stripe_service.py          Stripe Issuing (mock fallback)
-      creep_detection.py         Price increase detection logic
-      elevenlabs_service.py      ElevenLabs TTS + signed URLs
+      creep_detection.py         Subscription price hike detection
+      elevenlabs_service.py      ElevenLabs TTS
 
   frontend/
     app/
-      layout.tsx                 Root layout (fonts, CSS vars)
-      page.tsx                   Redirect to /dashboard
-      globals.css                Design system + animations
-      dashboard/page.tsx         Main dashboard page
-      cards/page.tsx             Virtual card manager
-      advisor/page.tsx           Full AI advisor chat page
+      layout.tsx                 Root layout (fonts, metadata)
+      page.tsx                   Landing page
+      globals.css                Design tokens, animations, utilities
+      auth/page.tsx              Login / Signup
+      onboarding/page.tsx        4-step onboarding wizard
+      dashboard/
+        layout.tsx               Sidebar + top bar layout
+        page.tsx                 Overview (charts, stats, transactions)
+        transactions/page.tsx    Searchable transaction table
+        cards/page.tsx           Card management
+        analyzer/page.tsx        Purchase photo analyzer
+        goals/page.tsx           Financial goals + debt tracking
+        advisor/page.tsx         AI chat with Vera
+        bills/page.tsx           Bills & subscriptions
+      terms/page.tsx             Terms & Conditions
+      privacy/page.tsx           Privacy Policy
     components/
-      layout/                    Sidebar, TopBar, DashboardLayout, AIPanelWrapper
-      dashboard/                 NetWorthCard, SpendingDonut, MonthlyTrendChart,
-                                 BudgetProgress, SubscriptionGrid, TransactionFeed,
-                                 QuickStats, UpcomingBills
-      alerts/                    AnomalyAlert (creep detection banner)
-      advisor/                   ChatPanel, ChatMessage, QuickChips, TypingIndicator,
-                                 CameraModal, PurchaseResult
-      cards/                     VirtualCard, VirtualCardGrid, CreateCardModal,
-                                 CardDestroyConfirm
-      vera/                      VeraAvatar, VoiceCallModal, VoiceWaveform, VeraCallButton
-      shared/                    LoadingSkeleton, CurrencyDisplay, TrendArrow, MerchantLogo
-    hooks/
-      useDashboard.ts            Dashboard data fetching
-      useAlerts.ts               Alert action handling
-      useAdvisor.ts              Chat state + message sending
-      useCamera.ts               Image upload + purchase analysis
-      useVirtualCards.ts         Card CRUD operations
-      useVera.ts                 Voice call state management
+      MerchantLogo.tsx           Merchant logo fetcher (Clearbit API)
+      landing/
+        Navbar.tsx               Top navigation with auth links
+        HeroSection.tsx          Hero banner with CTA
+        LogoMarquee.tsx          Partner logo carousel
+        FeaturesSection.tsx      Feature highlights grid
+        HowItWorks.tsx           Step-by-step explainer
+        IntegrationSection.tsx   Integration partner showcase
+        PricingSection.tsx       Pricing tier cards
+        TestimonialsSection.tsx  User testimonials carousel
+        BlogSection.tsx          Blog post previews
+        CTASection.tsx           Final call-to-action
+        Footer.tsx               Footer with legal links
     lib/
-      api.ts                     API client functions
-      types.ts                   TypeScript interfaces
-      formatters.ts              Currency/date formatting + cn()
-      constants.ts               Colors, labels, gradients
+      mock-data.ts               Centralized financial mock data
+      utils.ts                   cn() utility (clsx + tailwind-merge)
 ```
 
 ---
@@ -302,52 +307,50 @@ clearview/
 ### Colors
 | Token | Hex | Usage |
 |-------|-----|-------|
-| `bg-primary` | `#070B14` | Page background |
-| `bg-secondary` | `#0D1526` | Card backgrounds |
-| `bg-tertiary` | `#141F35` | Hover / elevated states |
-| `accent-blue` | `#4F8EF7` | Primary actions |
-| `positive` | `#00D26A` | Income, positive values |
-| `negative` | `#FF4757` | Expenses, alerts |
-| `warning` | `#FFB836` | Budget warnings |
-| `vera-primary` | `#A78BFA` | Vera's brand color |
+| `background` | `#FBF9F6` | Page background (warm cream) |
+| `foreground` | `#1A1A1A` | Primary text |
+| `card` | `#FFFFFF` | Card surfaces |
+| `primary` | `#E53E0B` | Buttons, active states, accents |
+| `muted` | `#F5F0EB` | Subtle backgrounds |
+| `border` | `#E8E4E0` | Card and input borders |
+| `green-600` | `#16A34A` | Positive values, income |
+| `red-500` | `#DC2626` | Negative values, over-budget |
 
 ### Typography
 | Font | Variable | Usage |
 |------|----------|-------|
-| Syne | `--font-display` | Numbers, headings, the Clearview wordmark |
-| DM Sans | `--font-body` | All body text, labels, descriptions |
-| JetBrains Mono | `--font-mono` | Card numbers, transaction IDs |
+| Inter | `--font-sans` | All body text, labels, data |
+| Playfair Display | `--font-serif-display` | Display headings (italic) |
+| JetBrains Mono | `--font-mono` | Card numbers, code |
 
 ### Component Patterns
-- Glass cards: `bg-[rgba(13,21,38,0.8)] backdrop-blur-[12px] border border-[rgba(255,255,255,0.06)] rounded-2xl`
-- All charts animate on mount (600ms ease-in)
-- Card destroy: shake (300ms) -> red flash (100ms) -> shrink (400ms)
-- Alert slide-out: 400ms upward fade after action
+- Cards: `rounded-2xl bg-card border border-border` with `p-5`
+- Buttons: `rounded-full bg-primary text-primary-foreground` with hover opacity
+- Inputs: `rounded-xl bg-background border border-border` with focus ring
+- Sidebar nav: active state uses `bg-primary text-primary-foreground`
+- Animations: scroll-triggered via `useInView`, staggered children
 
 ---
 
-## Demo Script (90 Seconds)
+## User Flow
 
-**[Dashboard -- 0:00-0:15]**
-"This is Clearview. One screen. Everything you need to know about your money -- $23,400 net worth, $340 discretionary left this month, 8 subscriptions costing $178 a month."
-
-**[Anomaly Alert -- 0:15-0:30]**
-"And look -- Netflix just tried to charge $17.99 instead of $15.99. A 12.5% price hike, caught before the money left my account. I can approve it, update my limit, or decline and freeze the card."
-
-**[AI Advisor -- 0:30-0:50]**
-Type: "Should I book a $600 trip to Miami next month?"
-"She didn't say 'make sure you budget carefully.' She said I have $340 left and $267 in bills coming. That's a real answer."
-
-**[Camera -- 0:50-1:05]**
-Upload a shoe photo.
-"I'm in a store. Can I afford these $120 Nike shoes? No -- and she told me exactly why."
-
-**[Cards -- 1:05-1:20]**
-Navigate to /cards. Click Destroy on Planet Fitness.
-"Four months of gym payments I forgot about. Done. They cannot charge me again."
-
-**[Vera Call -- 1:20-1:35]**
-Click Call Vera. "Vera, am I being financially responsible this month?"
+```
+Landing Page  →  Get Started  →  /auth (signup)
+                                    ↓
+                               /onboarding
+                            Step 1: Goals
+                            Step 2: Cards
+                            Step 3: Bank (Plaid sandbox)
+                            Step 4: Loans
+                                    ↓
+                              /dashboard (overview)
+                               ├── Transactions
+                               ├── Cards
+                               ├── Purchase Analyzer
+                               ├── Goals
+                               ├── AI Advisor (Vera)
+                               └── Bills & Subs
+```
 
 ---
 
@@ -357,14 +360,14 @@ Click Call Vera. "Vera, am I being financially responsible this month?"
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `MONGODB_URI` | Yes | MongoDB Atlas connection string |
+| `MONGODB_URI` | Yes | MongoDB connection string |
 | `MONGODB_DB_NAME` | No | Database name (default: `clearview_db`) |
 | `GEMINI_API_KEY` | Yes | Google Gemini API key |
 | `GEMINI_MODEL` | No | Model name (default: `gemini-1.5-flash`) |
 | `ELEVENLABS_API_KEY` | No | ElevenLabs API key (voice features) |
-| `ELEVENLABS_AGENT_ID` | No | ElevenLabs Conversational AI agent ID |
-| `ELEVENLABS_VERA_VOICE_ID` | No | Voice ID for Vera's TTS |
-| `STRIPE_SECRET_KEY` | No | Stripe test key (card features, mock fallback) |
+| `ELEVENLABS_AGENT_ID` | No | ElevenLabs agent ID |
+| `ELEVENLABS_VERA_VOICE_ID` | No | Voice ID for Vera TTS |
+| `STRIPE_SECRET_KEY` | No | Stripe test key (virtual cards) |
 | `STRIPE_CARDHOLDER_ID` | No | Stripe cardholder for issuing |
 | `FRONTEND_URL` | No | Frontend URL for CORS (default: `http://localhost:3000`) |
 

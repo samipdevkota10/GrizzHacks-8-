@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
-import { Syne, DM_Sans, JetBrains_Mono } from "next/font/google";
+import { Inter, Playfair_Display, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const syne = Syne({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-display",
+  variable: "--font-sans",
   display: "swap",
 });
 
-const dmSans = DM_Sans({
+const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
-  variable: "--font-body",
+  variable: "--font-serif-display",
   display: "swap",
 });
 
@@ -21,8 +21,9 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Clearview — Personal Finance OS",
-  description: "Every dollar, crystal clear.",
+  title: "Vera Fund — Your All-in-One Financial Advisor",
+  description:
+    "AI-powered personal finance platform. Track spending, manage budgets, analyze purchases, and get intelligent financial advice.",
 };
 
 export default function RootLayout({
@@ -33,9 +34,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${syne.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${playfairDisplay.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="antialiased min-h-screen bg-bg-primary text-text-primary font-[family-name:var(--font-body)]">
+      <body className="antialiased min-h-screen bg-background text-foreground font-sans">
         {children}
       </body>
     </html>
