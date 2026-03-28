@@ -1,0 +1,48 @@
+# Dependencies
+node_modules/
+clearview/frontend/node_modules/
+clearview/frontend/.next/
+clearview/frontend/out/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+env/
+
+# Environment files (contain secrets)
+.env
+.env.local
+.env.*.local
+clearview/backend/.env
+clearview/frontend/.env.local
+
+# IDE
+.cursor/
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Build artifacts
+*.tsbuildinfo
+clearview/frontend/tsconfig.tsbuildinfo
+
+# Design system generated files (can be regenerated)
+design-system/
+
+# Misc
+*.log
+npm-debug.log*
