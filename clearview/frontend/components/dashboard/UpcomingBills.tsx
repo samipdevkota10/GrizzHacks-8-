@@ -1,5 +1,7 @@
 "use client";
 
+import { motion } from "motion/react";
+
 export type UpcomingBill = {
   name: string;
   amount: number;
@@ -38,10 +40,18 @@ export function UpcomingBills({ bills }: UpcomingBillsProps) {
         role="list"
       >
         {bills.map((bill, index) => (
-          <div
+          <motion.div
             key={`${bill.name}-${bill.date}-${index}`}
             role="listitem"
-            className="flex min-w-[140px] flex-shrink-0 flex-col rounded-xl border border-border-subtle bg-bg-tertiary/50 p-3"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{
+              duration: 0.4,
+              delay: 0.5 + index * 0.08,
+              ease: [0.21, 0.47, 0.32, 0.98] as const,
+            }}
+            whileHover={{ y: -3, scale: 1.02 }}
+            className="flex min-w-[140px] flex-shrink-0 flex-col rounded-xl border border-border-subtle bg-bg-tertiary/50 p-3 transition-shadow hover:shadow-lg hover:shadow-black/20"
           >
             <div className="mb-2 flex items-center gap-2">
               {bill.logo_url ? (
@@ -57,7 +67,7 @@ export function UpcomingBills({ bills }: UpcomingBillsProps) {
               {formatCurrency(bill.amount)}
             </p>
             <p className="text-xs text-text-secondary">{formatBillDate(bill.date)}</p>
-          </div>
+          </motion.div>
         ))}
       </div>
     </div>

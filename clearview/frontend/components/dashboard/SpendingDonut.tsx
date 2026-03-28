@@ -1,7 +1,9 @@
 "use client";
 
 import { useMemo } from "react";
+import { motion } from "motion/react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { NumberTicker } from "@/components/motion/NumberTicker";
 
 export const CATEGORY_COLORS: Record<string, string> = {
   food: "#FF6B6B",
@@ -38,7 +40,9 @@ export function SpendingDonut({ data }: SpendingDonutProps) {
   );
 
   return (
-    <div className="glass-card p-6">
+    <div className="glass-card p-6 relative overflow-hidden">
+      <div className="absolute bottom-0 left-0 w-32 h-32 bg-vera-primary/[0.03] rounded-full blur-3xl -translate-x-8 translate-y-8" />
+
       <h3 className="text-lg font-semibold text-text-primary">
         Spending Breakdown
       </h3>
@@ -57,7 +61,8 @@ export function SpendingDonut({ data }: SpendingDonutProps) {
               paddingAngle={2}
               strokeWidth={0}
               isAnimationActive
-              animationDuration={600}
+              animationDuration={800}
+              animationEasing="ease-out"
               cursor="pointer"
             >
               {chartData.map((entry, index) => (
@@ -71,20 +76,24 @@ export function SpendingDonut({ data }: SpendingDonutProps) {
             Total
           </p>
           <p className="mt-0.5 text-xl font-bold text-text-primary font-[family-name:var(--font-display)]">
-            ${total.toLocaleString(undefined, { maximumFractionDigits: 0 })}
+            <NumberTicker value={total} prefix="$" />
           </p>
         </div>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-2">
-        {chartData.map((item) => (
-          <button
+        {chartData.map((item, i) => (
+          <motion.button
             key={item.category}
+            initial={{ opacity: 0, x: -8 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 + i * 0.05 }}
+            whileHover={{ x: 2 }}
             type="button"
             className="flex cursor-pointer items-center gap-2 rounded-lg py-1 text-left transition-opacity hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent-blue"
           >
             <span
-              className="h-3 w-3 shrink-0 rounded-full"
+              className="h-3 w-3 shrink-0 rounded-full ring-1 ring-white/10"
               style={{ backgroundColor: item.fill }}
               aria-hidden
             />
@@ -92,11 +101,11 @@ export function SpendingDonut({ data }: SpendingDonutProps) {
               <span className="block truncate text-sm text-text-secondary">
                 {item.category}
               </span>
-              <span className="text-sm font-medium text-text-primary">
+              <span className="text-sm font-medium text-text-primary font-[family-name:var(--font-mono)]">
                 ${item.amount.toLocaleString()}
               </span>
             </span>
-          </button>
+          </motion.button>
         ))}
       </div>
     </div>

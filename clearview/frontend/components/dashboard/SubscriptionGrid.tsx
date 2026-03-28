@@ -1,5 +1,7 @@
 "use client";
 
+import { motion } from "motion/react";
+
 export type SubscriptionItem = {
   _id: string;
   name: string;
@@ -59,19 +61,27 @@ export function SubscriptionGrid({ subscriptions }: SubscriptionGridProps) {
         <h2 className="text-lg font-semibold text-text-primary">
           Active Subscriptions
         </h2>
-        <p className="text-sm text-text-secondary">
+        <p className="text-sm text-text-secondary font-[family-name:var(--font-mono)]">
           {formatCurrency(totalMonthly)}/month
         </p>
       </div>
       <div className="grid grid-cols-2 gap-3">
-        {subscriptions.map((sub) => {
+        {subscriptions.map((sub, i) => {
           const initial = sub.name.trim().charAt(0).toUpperCase() || "?";
           const circle = categoryCircleClass(sub.category);
 
           return (
-            <div
+            <motion.div
               key={sub._id}
-              className="cursor-pointer rounded-xl border border-border-subtle bg-bg-tertiary/50 p-4 transition-all duration-200 hover:border-border-emphasis"
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{
+                duration: 0.4,
+                delay: 0.5 + i * 0.06,
+                ease: [0.21, 0.47, 0.32, 0.98] as const,
+              }}
+              whileHover={{ y: -2, scale: 1.01 }}
+              className="cursor-pointer rounded-xl border border-border-subtle bg-bg-tertiary/50 p-4 transition-all duration-200 hover:border-border-emphasis hover:shadow-lg hover:shadow-black/20"
             >
               <div className="mb-2 flex items-start gap-2">
                 <div
@@ -99,11 +109,16 @@ export function SubscriptionGrid({ subscriptions }: SubscriptionGridProps) {
                 Renews {formatRenewalDate(sub.next_billing_date)}
               </p>
               {sub.ai_cancel_recommendation && (
-                <span className="mt-2 inline-block rounded-md border border-warning/40 bg-warning/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warning">
+                <motion.span
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.8 + i * 0.06 }}
+                  className="mt-2 inline-block rounded-md border border-warning/40 bg-warning/10 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-warning"
+                >
                   Consider cancelling
-                </span>
+                </motion.span>
               )}
-            </div>
+            </motion.div>
           );
         })}
       </div>

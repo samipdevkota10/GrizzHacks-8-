@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { motion } from "motion/react";
 
 export type TransactionFeedItem = {
   _id: string;
@@ -47,18 +48,27 @@ export function TransactionFeed({ transactions }: TransactionFeedProps) {
       </div>
       <div className="max-h-[min(28rem,60vh)] overflow-y-auto pr-1">
         <ul>
-          {visible.map((tx) => {
+          {visible.map((tx, i) => {
             const initial = tx.merchant_name.trim().charAt(0).toUpperCase() || "?";
             const amountClass =
               tx.amount < 0 ? "text-negative" : "text-positive";
 
             return (
-              <li
+              <motion.li
                 key={tx._id}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{
+                  duration: 0.35,
+                  delay: 0.4 + i * 0.04,
+                  ease: [0.21, 0.47, 0.32, 0.98],
+                }}
                 className="border-b border-border-subtle last:border-b-0"
               >
-                <div
-                  className={`flex cursor-pointer items-center gap-4 py-3 transition-colors duration-200 hover:bg-bg-tertiary/50 ${
+                <motion.div
+                  whileHover={{ x: 4, backgroundColor: "rgba(20, 31, 53, 0.5)" }}
+                  transition={{ duration: 0.2 }}
+                  className={`flex cursor-pointer items-center gap-4 py-3 rounded-lg transition-colors duration-200 ${
                     tx.anomaly_flag ? "bg-[rgba(255,71,87,0.08)]" : ""
                   }`}
                 >
@@ -67,7 +77,7 @@ export function TransactionFeed({ transactions }: TransactionFeedProps) {
                     aria-hidden={!tx.anomaly_flag}
                     title={tx.anomaly_flag ? "Unusual activity" : undefined}
                   />
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-bg-tertiary font-medium text-text-primary">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-bg-tertiary font-medium text-text-primary ring-1 ring-white/[0.04]">
                     {initial}
                   </div>
                   <div className="min-w-0 flex-1">
@@ -77,15 +87,15 @@ export function TransactionFeed({ transactions }: TransactionFeedProps) {
                     <p className="text-xs text-text-secondary">{tx.category}</p>
                   </div>
                   <div className="shrink-0 text-right">
-                    <p className={`font-medium ${amountClass}`}>
+                    <p className={`font-medium font-[family-name:var(--font-mono)] ${amountClass}`}>
                       {formatCurrency(tx.amount)}
                     </p>
                     <p className="text-xs text-text-secondary">
                       {formatShortDate(tx.date)}
                     </p>
                   </div>
-                </div>
-              </li>
+                </motion.div>
+              </motion.li>
             );
           })}
         </ul>
