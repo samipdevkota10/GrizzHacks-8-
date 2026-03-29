@@ -316,19 +316,23 @@ export default function PurchaseAnalyzer() {
           <div className="rounded-2xl bg-card border border-border p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">Your Hourly Rate (After Tax)</p>
             <p className="text-xl font-bold text-foreground tabular-nums">
-              ${userStats.netHourlyRate > 0 ? userStats.netHourlyRate.toFixed(2) : "—"}
+              {Number.isFinite(userStats.netHourlyRate) ? `$${userStats.netHourlyRate.toFixed(2)}` : "—"}
             </p>
           </div>
           <div className="rounded-2xl bg-card border border-border p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">Remaining Monthly Budget</p>
             <p className="text-xl font-bold text-foreground tabular-nums">
-              ${userStats.budgetRemaining > 0 ? userStats.budgetRemaining.toLocaleString() : "—"}
+              {Number.isFinite(userStats.budgetRemaining)
+                ? `${userStats.budgetRemaining < 0 ? "-$" : "$"}${Math.abs(userStats.budgetRemaining).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                : "—"}
             </p>
           </div>
           <div className="rounded-2xl bg-card border border-border p-4 text-center">
             <p className="text-xs text-muted-foreground mb-1">Monthly Savings</p>
-            <p className="text-xl font-bold text-green-600 tabular-nums">
-              ${userStats.monthlySavings > 0 ? userStats.monthlySavings.toLocaleString() : "—"}
+            <p className={`text-xl font-bold tabular-nums ${userStats.monthlySavings >= 0 ? "text-green-600" : "text-red-500"}`}>
+              {Number.isFinite(userStats.monthlySavings)
+                ? `${userStats.monthlySavings < 0 ? "-$" : "$"}${Math.abs(userStats.monthlySavings).toLocaleString(undefined, { maximumFractionDigits: 2 })}`
+                : "—"}
             </p>
           </div>
         </div>
