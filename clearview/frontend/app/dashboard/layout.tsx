@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -15,6 +15,7 @@ import {
   Bell,
   Search,
   UserCircle,
+  ChevronUp,
 } from "lucide-react";
 import { getUserId, getToken, clearAuth, fetchDashboard } from "@/lib/api";
 
@@ -26,7 +27,6 @@ const NAV_ITEMS = [
   { href: "/dashboard/goals", label: "Goals", icon: Target },
   { href: "/dashboard/advisor", label: "AI Advisor", icon: BrainCircuit },
   { href: "/dashboard/bills", label: "Bills & Subs", icon: Receipt },
-  { href: "/dashboard/profile", label: "Profile & Settings", icon: UserCircle },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -34,6 +34,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const [user, setUser] = useState<{ name: string; email: string; avatar_url: string | null } | null>(null);
   const [alertCount, setAlertCount] = useState(0);
   const [dateLabel, setDateLabel] = useState<{ full: string; day: string } | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const now = new Date();
@@ -41,6 +43,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       full: now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
       day: now.toLocaleDateString("en-US", { weekday: "long" }),
     });
+  }, []);
+
+  useEffect(() => {
+    const onClickOutside = (event: MouseEvent) => {
+      if (!userMenuRef.current) return;
+      if (!userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
   useEffect(() => {
@@ -110,8 +123,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        <div className="p-4 border-t border-border" suppressHydrationWarning>
-          <div className="flex items-center gap-3 px-2 mb-3" suppressHydrationWarning>
+        <div className="p-4 border-t border-border relative" suppressHydrationWarning ref={userMenuRef}>
+          <button
+            onClick={() => setUserMenuOpen((v) => !v)}
+            className="w-full flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-muted transition-all"
+            suppressHydrationWarning
+          >
             {user?.avatar_url ? (
               <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-full object-cover" />
             ) : (
@@ -119,18 +136,35 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 {user?.name?.charAt(0) || "U"}
               </div>
             )}
-            <div className="flex-1 min-w-0" suppressHydrationWarning>
+            <div className="flex-1 min-w-0 text-left" suppressHydrationWarning>
               <p className="text-sm font-medium text-foreground truncate" suppressHydrationWarning>{user?.name || "Loading..."}</p>
               <p className="text-xs text-muted-foreground truncate" suppressHydrationWarning>{user?.email || ""}</p>
             </div>
-          </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all w-full"
-          >
-            <LogOut size={16} />
-            Sign out
+            <ChevronUp
+              size={14}
+              className={`text-muted-foreground transition-transform ${userMenuOpen ? "rotate-0" : "rotate-180"}`}
+            />
           </button>
+
+          {userMenuOpen && (
+            <div className="absolute bottom-[72px] left-4 right-4 rounded-xl border border-border bg-card shadow-lg p-2 z-20">
+              <Link
+                href="/dashboard/profile"
+                onClick={() => setUserMenuOpen(false)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-foreground hover:bg-muted transition-colors"
+              >
+                <UserCircle size={16} />
+                Profile & Settings
+              </Link>
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-colors w-full"
+              >
+                <LogOut size={16} />
+                Sign out
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 

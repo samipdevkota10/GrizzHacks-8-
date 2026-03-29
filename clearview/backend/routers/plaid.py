@@ -207,14 +207,34 @@ async def sandbox_bootstrap(user_id: str = Depends(get_current_user)):
     access_token = exch["access_token"]
     item_id = exch["item_id"]
 
-    await _plaid_post(
-        "/sandbox/transactions/create",
-        {
-            "access_token": access_token,
-            "start_date": (datetime.now(UTC) - timedelta(days=120)).date().isoformat(),
-            "end_date": datetime.now(UTC).date().isoformat(),
-        },
-    )
+    # Optional sandbox enhancer: only works for specific dynamic sandbox users.
+    # Do not fail onboarding if this unsupported endpoint rejects the request.
+    try:
+        today = datetime.now(UTC).date().isoformat()
+        await _plaid_post(
+            "/sandbox/transactions/create",
+            {
+                "access_token": access_token,
+                "transactions": [
+                    {
+                        "amount": -12.75,
+                        "date_transacted": today,
+                        "date_posted": today,
+                        "description": "Chipotle",
+                        "iso_currency_code": "USD",
+                    },
+                    {
+                        "amount": -5.99,
+                        "date_transacted": today,
+                        "date_posted": today,
+                        "description": "Spotify",
+                        "iso_currency_code": "USD",
+                    },
+                ],
+            },
+        )
+    except HTTPException:
+        pass
 
     # Persist plaid item
     await db.plaid_items.update_one(
