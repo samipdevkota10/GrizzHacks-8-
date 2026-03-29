@@ -376,69 +376,111 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 rounded-2xl bg-card border border-border p-5">
+      {financialGoals.length > 0 && (
+        <div className="rounded-2xl bg-card border border-border p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-foreground">Financial Goals</h3>
             <a href="/dashboard/goals" className="text-xs text-primary hover:underline">View all →</a>
           </div>
-          {financialGoals.length > 0 ? (
-            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
-              {financialGoals.map((goal) => {
-                const current = goal.current_amount ?? 0;
-                const target = goal.target_amount ?? 0;
-                const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
-                const GoalIcon = GOAL_ICON_MAP[goal.icon || "Target"] || Target;
-                return (
-                  <div key={goal.name}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <GoalIcon size={18} className="text-primary" />
-                      <span className="text-sm font-medium text-foreground flex-1">{goal.name}</span>
-                      <span className="text-xs text-muted-foreground tabular-nums">{pct}%</span>
+          <div className={`grid gap-4 ${financialGoals.length === 1 ? "grid-cols-1" : financialGoals.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+            {financialGoals.map((goal) => {
+              const current = goal.current_amount ?? 0;
+              const target = goal.target_amount ?? 0;
+              const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
+              const remaining = Math.max(0, target - current);
+              const GoalIcon = GOAL_ICON_MAP[goal.icon || "Target"] || Target;
+              const monthlySavingsGoal = profile?.savings_goal_monthly || 0;
+              const monthsLeft = monthlySavingsGoal > 0 ? Math.ceil(remaining / monthlySavingsGoal) : null;
+              return (
+                <div key={goal.name} className="rounded-xl bg-muted/40 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                      <GoalIcon size={16} className="text-primary" />
                     </div>
-                    <div className="h-2 rounded-full bg-muted overflow-hidden">
-                      <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${pct}%` }} />
-                    </div>
-                    <div className="flex justify-between mt-1">
-                      <span className="text-xs text-muted-foreground tabular-nums">${current.toLocaleString()}</span>
-                      <span className="text-xs text-muted-foreground tabular-nums">${target.toLocaleString()}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{goal.name}</p>
+                      <p className="text-xs text-muted-foreground">{pct}% complete</p>
                     </div>
                   </div>
-                );
-              })}
+                  <div className="h-2 rounded-full bg-muted overflow-hidden mb-2">
+                    <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${pct}%` }} />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-muted-foreground tabular-nums">${current.toLocaleString()} of ${target.toLocaleString()}</span>
+                    {monthsLeft != null && monthsLeft < 999 && (
+                      <span className="text-[10px] text-muted-foreground">~{monthsLeft} mo left</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="rounded-2xl bg-card border border-border p-5">
+          <h3 className="text-sm font-bold text-foreground mb-4">Financial Pulse</h3>
+          <div className="space-y-4">
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Avg Daily Spend</p>
+              <p className="text-lg font-bold text-foreground tabular-nums">${qs.avg_daily_spend.toFixed(0)}<span className="text-xs font-normal text-muted-foreground">/day</span></p>
             </div>
-          ) : (
-            <div className="text-center py-6">
-              <Target size={32} className="mx-auto mb-2 text-muted-foreground opacity-40" />
-              <p className="text-sm text-muted-foreground">No financial goals set yet.</p>
-              <a href="/dashboard/goals" className="text-xs text-primary hover:underline mt-1 inline-block">Set goals →</a>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Top Category</p>
+              <div className="flex items-center gap-2 mt-0.5">
+                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[qs.top_category.toLowerCase()] || "#94A3B8" }} />
+                <p className="text-sm font-medium text-foreground">{qs.top_category.charAt(0).toUpperCase() + qs.top_category.slice(1)}</p>
+                <span className="text-xs text-muted-foreground tabular-nums ml-auto">${qs.top_category_amount.toLocaleString()}</span>
+              </div>
             </div>
-          )}
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Subscriptions</p>
+              <p className="text-sm font-medium text-foreground">{data.subscriptions.length} active</p>
+            </div>
+            <div>
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Days to Paycheck</p>
+              <p className="text-lg font-bold text-foreground tabular-nums">{qs.days_until_paycheck}<span className="text-xs font-normal text-muted-foreground"> days</span></p>
+            </div>
+          </div>
         </div>
 
-        <div className="rounded-2xl bg-card border border-border p-5">
+        <div className="col-span-2 rounded-2xl bg-card border border-border p-5">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold text-foreground">Upcoming Bills</h3>
-            <DollarSign size={16} className="text-muted-foreground" />
-          </div>
-          <div className="space-y-1">
-            {upcoming_bills.map((bill) => (
-              <div key={bill.name} className="flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-muted/50 transition-colors">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{bill.name}</p>
-                  <p className="text-xs text-muted-foreground" suppressHydrationWarning>
-                    Due {bill.date ? new Date(bill.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-sm font-medium text-foreground tabular-nums">${bill.amount.toFixed(2)}</p>
-                </div>
+            {upcoming_bills.length > 0 && (
+              <div className="flex items-center gap-3">
+                <span className="text-xs font-medium text-foreground tabular-nums">
+                  Total: ${upcoming_bills.reduce((s, b) => s + b.amount, 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                </span>
+                <a href="/dashboard/bills" className="text-xs text-primary hover:underline">View all →</a>
               </div>
-            ))}
-            {upcoming_bills.length === 0 && (
-              <p className="text-sm text-muted-foreground py-4 text-center">No upcoming bills</p>
             )}
           </div>
+          {upcoming_bills.length > 0 ? (
+            <div className="grid grid-cols-2 gap-x-4">
+              {upcoming_bills.slice(0, 10).map((bill, i) => (
+                <div key={`${bill.name}-${i}`} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium text-foreground truncate">{bill.name}</p>
+                    <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+                      Due {bill.date ? new Date(bill.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
+                    </p>
+                  </div>
+                  <p className="text-sm font-medium text-foreground tabular-nums ml-3">${bill.amount.toFixed(2)}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-muted-foreground py-4 text-center">No upcoming bills</p>
+          )}
+          {upcoming_bills.length > 10 && (
+            <div className="mt-3 text-center">
+              <a href="/dashboard/bills" className="text-xs text-primary hover:underline">
+                +{upcoming_bills.length - 10} more bills →
+              </a>
+            </div>
+          )}
         </div>
       </div>
     </div>
