@@ -29,6 +29,7 @@ import {
 } from "recharts";
 import {
   getUserId,
+  clearAuth,
   fetchDashboard,
   type DashboardData,
   type Transaction,
@@ -87,7 +88,13 @@ export default function DashboardOverview() {
     if (!uid) { setLoading(false); return; }
     fetchDashboard(uid)
       .then(setData)
-      .catch(console.error)
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : "";
+        if (msg.includes("404") || msg.includes("401")) {
+          clearAuth();
+          window.location.href = "/auth";
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 

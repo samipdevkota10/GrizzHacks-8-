@@ -5,6 +5,7 @@ import { Calendar, Repeat } from "lucide-react";
 import { MerchantLogo } from "@/components/MerchantLogo";
 import {
   getUserId,
+  clearAuth,
   fetchDashboard,
   type DashboardData,
   type Subscription,
@@ -26,7 +27,10 @@ export default function BillsPage() {
           (d.subscriptions as unknown as Subscription[]).filter((s) => s.status === "active"),
         );
       })
-      .catch(console.error)
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : "";
+        if (msg.includes("404") || msg.includes("401")) { clearAuth(); window.location.href = "/auth"; }
+      })
       .finally(() => setLoading(false));
   }, []);
 

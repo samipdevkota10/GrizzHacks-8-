@@ -62,7 +62,14 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         avatar_url: u.avatar_url || null,
       });
       setAlertCount(d.pending_alerts.length + d.notifications.length);
-    }).catch(() => {});
+    }).catch((err: unknown) => {
+      // If user not found (stale localStorage after a reseed), clear auth and redirect
+      const msg = err instanceof Error ? err.message : "";
+      if (msg.includes("404") || msg.includes("401")) {
+        clearAuth();
+        window.location.href = "/auth";
+      }
+    });
   }, []);
 
   const handleSignOut = () => {

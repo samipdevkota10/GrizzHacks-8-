@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Target, TrendingDown, Shield, Plane, GraduationCap } from "lucide-react";
-import { getUserId, fetchDashboard } from "@/lib/api";
+import { getUserId, clearAuth, fetchDashboard } from "@/lib/api";
 
 const GOAL_ICONS: Record<string, React.ElementType> = { Shield, Plane, GraduationCap, Target };
 
@@ -34,7 +34,10 @@ export default function GoalsPage() {
         setGoals(profile?.financial_goals || []);
         setAccounts(d.accounts as unknown as Account[]);
       })
-      .catch(console.error)
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : "";
+        if (msg.includes("404") || msg.includes("401")) { clearAuth(); window.location.href = "/auth"; }
+      })
       .finally(() => setLoading(false));
   }, []);
 
