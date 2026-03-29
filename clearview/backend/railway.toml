@@ -1,0 +1,11 @@
+# Use this service with Railway root directory = clearview/backend
+# (Settings → Root Directory). Config-as-code overrides dashboard start command.
+#
+# If Railway does not pick up this file, set Service → Settings → Config file path to:
+# /clearview/backend/railway.toml
+
+[deploy]
+startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT"
+healthcheckPath = "/api/health"
+healthcheckTimeout = 120
+restartPolicyType = "ON_FAILURE"

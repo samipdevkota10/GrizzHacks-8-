@@ -135,10 +135,16 @@ To implement, you would need:
 
 #### Backend on Railway
 1. Go to https://railway.app, connect GitHub
-2. Set root directory to `clearview/backend`
-3. Add all `.env` variables
-4. Set start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`
-5. Deploy
+2. Create a **service** from this repo and set **Root Directory** to `clearview/backend` (critical for Python + `requirements.txt`).
+3. Optional: **Settings → Config file** → `/clearview/backend/railway.toml` (ensures start command + health check are applied).
+4. **Networking → Public** must be enabled on **this** backend service; generate/copy the `*.railway.app` URL from that service (not a placeholder or unrelated project).
+5. Add all env vars from `clearview/backend/.env.example`, including `MONGODB_URI`, `FRONTEND_URL=https://grizz-hacks-8.vercel.app`, and `JWT_SECRET_KEY`.
+6. **Verify before pointing Vercel:** from your laptop,
+   ```bash
+   curl -sS https://YOUR-SERVICE.railway.app/api/health
+   ```
+   You must see JSON `{"status":"ok"}`. If you see plain text `Not Found`, ASCII art on `/`, or CORS errors mentioning `https://railway.com` on **every** path, traffic is **not** reaching FastAPI (wrong service, wrong root directory, or app not listening on `0.0.0.0:$PORT`).
+7. Start command (if not using `railway.toml`): `uvicorn main:app --host 0.0.0.0 --port $PORT`
 
 ---
 
