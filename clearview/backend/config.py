@@ -43,7 +43,6 @@ class Settings(BaseSettings):
     def cors_allow_origins(self) -> list[str]:
         items = [
             self.FRONTEND_URL.strip(),
-            "https://grizz-hacks-8.vercel.app",
             "http://localhost:3000",
             "http://localhost:3001",
         ]
