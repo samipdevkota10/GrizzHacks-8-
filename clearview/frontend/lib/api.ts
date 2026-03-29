@@ -62,6 +62,25 @@ async function postForm<T>(path: string, formData: FormData): Promise<T> {
   return res.json();
 }
 
+async function patch<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+  return res.json();
+}
+
+async function del<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: "DELETE",
+    headers: { ...authHeaders() },
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
+  return res.json();
+}
+
 // ── Auth API ─────────────────────────────────────────────────
 export interface AuthResponse {
   token: string;
@@ -229,6 +248,32 @@ export function fetchDashboard(userId: string): Promise<DashboardData> {
 
 export function fetchCards(userId: string): Promise<{ cards: VirtualCard[] }> {
   return get<{ cards: VirtualCard[] }>(`/api/cards/${userId}`);
+}
+
+export interface CreateCardPayload {
+  user_id: string;
+  merchant_name?: string;
+  nickname?: string;
+  spending_limit_monthly?: number;
+  merchant_category?: string;
+  funding_account_id?: string;
+  color_scheme?: string;
+}
+
+export function createCard(payload: CreateCardPayload): Promise<{ card: VirtualCard }> {
+  return post<{ card: VirtualCard }>("/api/cards", payload);
+}
+
+export function pauseCard(cardId: string): Promise<{ card: VirtualCard; message: string }> {
+  return patch<{ card: VirtualCard; message: string }>(`/api/cards/${cardId}/pause`);
+}
+
+export function deleteCard(cardId: string): Promise<{ message: string; card_id: string }> {
+  return del<{ message: string; card_id: string }>(`/api/cards/${cardId}`);
+}
+
+export function updateCardLimit(cardId: string, spending_limit_monthly: number): Promise<{ message: string }> {
+  return patch<{ message: string }>(`/api/cards/${cardId}/limit`, { spending_limit_monthly });
 }
 
 export function fetchTransactions(userId: string): Promise<{ transactions: Transaction[] }> {
