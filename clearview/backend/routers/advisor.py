@@ -333,7 +333,101 @@ async def get_conversations(user_id: str, limit: int = 10):
     return {"conversations": [_serialize(c) for c in convs]}
 
 
-# ── Advisor Voice Call Endpoints ──────────────────────────────
+# ── Advisor Voice Session (in-browser) ────────────────────────
+
+
+@router.post("/voice-session")
+async def create_advisor_voice_session(body: dict):
+    """Return a signed URL + personalized overrides for an in-browser
+    ElevenLabs ConvAI voice conversation (no Twilio credits needed)."""
+    from services.elevenlabs_service import elevenlabs_service
+    from services.advisor_caller import ADVISOR_CALL_PROMPT, _goals_summary
+
+    user_id = body.get("user_id")
+    if not user_id:
+        raise HTTPException(400, "user_id is required")
+
+    uid = parse_user_object_id(user_id)
+    db = get_database()
+    user = await db.users.find_one({"_id": uid})
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    signed_url_data = await elevenlabs_service.get_signed_url()
+    if signed_url_data.get("mock"):
+        raise HTTPException(503, detail={
+            "message": "ElevenLabs not configured",
+            "hint": "Set ELEVENLABS_API_KEY and ELEVENLABS_AGENT_ID on the server.",
+        })
+
+    context = await build_financial_context(user_id)
+    user_name = context.get("user_name", "there")
+    goals_text = _goals_summary(context.get("financial_goals", []))
+
+    prompt = ADVISOR_CALL_PROMPT.format(
+        user_name=user_name,
+        context_text=context["context_text"],
+        month_spent=context.get("month_spent", 0),
+        monthly_budget=context.get("monthly_budget", 0),
+        discretionary_remaining=context.get("discretionary_remaining", 0),
+        top_category=context.get("top_category", "unknown"),
+        top_category_amount=context.get("top_category_amount", 0),
+        subscription_total_monthly=context.get("subscription_total_monthly", 0),
+        goals_summary=goals_text,
+    )
+
+    disc = context.get("discretionary_remaining", 0)
+    spent = context.get("month_spent", 0)
+    budget = context.get("monthly_budget", 0)
+
+    first_message = (
+        f"Hi {user_name}, it's Vera from VeraFund. "
+        f"You've spent ${spent:,.2f} of your ${budget:,.2f} budget this month, "
+        f"so you have ${disc:,.2f} left for discretionary spending. "
+        f"Want me to walk you through a quick game plan for the rest of the month?"
+    )
+
+    dynamic_variables = {
+        "call_type": "advisor_session",
+        "customer_name": user_name,
+        "checking_balance": f"{context.get('checking_balance', 0):,.2f}",
+        "discretionary_remaining": f"{disc:,.2f}",
+        "monthly_budget": f"{budget:,.2f}",
+        "month_spent": f"{spent:,.2f}",
+        "top_category": context.get("top_category", "unknown"),
+        "subscription_total_monthly": f"{context.get('subscription_total_monthly', 0):,.2f}",
+    }
+
+    now = datetime.utcnow()
+    session_id = str(uuid4())
+    conv_doc = {
+        "user_id": uid,
+        "session_id": session_id,
+        "mode": "advisor_call",
+        "status": "in_progress",
+        "call_transport": "browser_voice",
+        "messages": [],
+        "financial_context_snapshot": context,
+        "started_at": now,
+    }
+    insert = await db.ai_conversations.insert_one(conv_doc)
+
+    return {
+        "signed_url": signed_url_data["url"],
+        "agent_id": elevenlabs_service.agent_id,
+        "conversation_id": str(insert.inserted_id),
+        "session_id": session_id,
+        "overrides": {
+            "agent": {
+                "prompt": {"prompt": prompt},
+                "firstMessage": first_message[:500],
+            },
+        },
+        "dynamic_variables": dynamic_variables,
+    }
+
+
+# ── Advisor Outbound Phone Call ───────────────────────────────
 
 
 @router.post("/call/start")

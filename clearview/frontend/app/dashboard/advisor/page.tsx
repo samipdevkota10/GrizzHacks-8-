@@ -21,6 +21,7 @@ import {
   type AdvisorCallSummary,
   type AdvisorCallStatus,
 } from "@/lib/api";
+import VoiceChat from "@/components/VoiceChat";
 
 type Message = { role: "user" | "ai"; text: string };
 
@@ -303,31 +304,28 @@ export default function AdvisorPage() {
             AI Advisor
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Get personalized financial advice from Vera</p>
-          <p className="text-xs text-muted-foreground mt-1 max-w-xl">
-            Outbound calls use your profile phone in E.164 format (e.g. +1…). The server needs
-            ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID, and ELEVENLABS_PHONE_NUMBER_ID.
-          </p>
         </div>
 
-        <div className="flex flex-col items-end gap-1">
+        <div className="flex flex-col items-end gap-2">
+          <VoiceChat />
           <button
             onClick={handleStartCall}
             disabled={callState !== "idle"}
-            className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
               callState === "calling"
                 ? "bg-green-500/10 text-green-600 border border-green-500/30 cursor-wait"
                 : callState === "initiating"
                   ? "bg-primary/10 text-primary border border-primary/30 cursor-wait"
                   : callState === "error"
                     ? "bg-red-500/10 text-red-500 border border-red-500/30"
-                    : "bg-primary text-primary-foreground hover:opacity-90"
+                    : "text-muted-foreground hover:text-foreground border border-border hover:border-primary/30"
             }`}
           >
-            <Phone size={16} className={callState === "calling" ? "animate-pulse" : ""} />
+            <Phone size={12} className={callState === "calling" ? "animate-pulse" : ""} />
             {callState === "initiating" && "Starting call..."}
             {callState === "calling" && `Calling ...${callPhoneLast4}`}
             {callState === "error" && "Call failed"}
-            {callState === "idle" && "Call me now"}
+            {callState === "idle" && "Or call my phone"}
           </button>
           {callState === "calling" && (
             <p className="text-[11px] text-muted-foreground">

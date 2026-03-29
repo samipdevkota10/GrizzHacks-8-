@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@elevenlabs/client": "^1.0.0",
     "@elevenlabs/react": "^1.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

@@ -55,3 +55,11 @@ async def _ensure_indexes():
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}
+
+
+@app.post("/api/admin/seed")
+async def run_seed():
+    """Re-seed the database with demo data (destructive!)."""
+    from seed_data import seed
+    await seed()
+    return {"status": "seeded"}

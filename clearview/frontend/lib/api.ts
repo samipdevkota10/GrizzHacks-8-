@@ -663,3 +663,33 @@ export function fetchAdvisorCalls(
 ): Promise<{ calls: AdvisorCallSummary[] }> {
   return get<{ calls: AdvisorCallSummary[] }>(`/api/advisor/calls/${userId}?limit=${limit}`);
 }
+
+// ── In-browser voice session ─────────────────────────────────
+
+export interface VoiceSessionResponse {
+  signed_url: string;
+  agent_id: string;
+  conversation_id: string;
+  session_id: string;
+  overrides: {
+    agent: {
+      prompt: { prompt: string };
+      firstMessage: string;
+    };
+  };
+  dynamic_variables: Record<string, string>;
+}
+
+export async function createVoiceSession(userId: string): Promise<VoiceSessionResponse> {
+  const res = await fetch(`${API_URL}/api/advisor/voice-session`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ user_id: userId }),
+  });
+  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    const msg = extractFastApiErrorMessage(data) || `Voice session failed (${res.status})`;
+    throw new Error(msg);
+  }
+  return data as unknown as VoiceSessionResponse;
+}
