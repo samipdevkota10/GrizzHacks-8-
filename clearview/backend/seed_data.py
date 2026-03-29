@@ -37,8 +37,9 @@ async def seed() -> None:
 
     now = datetime.utcnow()
     start = now - timedelta(days=90)
-    user_id = ObjectId()
-    profile_id = ObjectId()
+    # Fixed IDs so the user survives reseeds (matches .env.local / production)
+    user_id = ObjectId("69c8872cbab93b1d2a3387c0")
+    profile_id = ObjectId("69c8872cbab93b1d2a3387c1")
 
     checking_id = ObjectId()
     savings_id = ObjectId()
