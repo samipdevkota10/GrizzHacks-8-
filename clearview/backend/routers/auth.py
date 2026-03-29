@@ -2,6 +2,7 @@ from datetime import datetime
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
+from pymongo.errors import OperationFailure
 
 from database import get_database
 from services.auth_service import (
@@ -12,6 +13,21 @@ from services.auth_service import (
 )
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+_ATLAS_AUTH_MSG = (
+    "Database authentication failed. Fix MONGODB_URI on the server: use the exact "
+    "Atlas database username and password, and URL-encode special characters in "
+    "the password (e.g. @ becomes %40)."
+)
+
+
+def _http_for_mongo(exc: OperationFailure) -> None:
+    """Atlas/Railway misconfig: map PyMongo auth errors to HTTP so CORS headers apply."""
+    code = getattr(exc, "code", None)
+    low = str(exc).lower()
+    if code == 8000 or "authentication failed" in low or "bad auth" in low:
+        raise HTTPException(503, _ATLAS_AUTH_MSG) from exc
+    raise exc
 
 
 def _safe_user(doc: dict) -> dict:
@@ -38,63 +54,66 @@ async def signup(body: dict):
 
     db = get_database()
 
-    existing = await db.users.find_one({"email": email})
-    if existing:
-        raise HTTPException(409, "An account with this email already exists")
+    try:
+        existing = await db.users.find_one({"email": email})
+        if existing:
+            raise HTTPException(409, "An account with this email already exists")
 
-    now = datetime.utcnow()
-    user_doc = {
-        "_id": ObjectId(),
-        "email": email,
-        "name": name or email.split("@")[0],
-        "password_hash": hash_password(password),
-        "avatar_url": None,
-        "created_at": now,
-        "updated_at": None,
-        "vera_character_id": None,
-        "vera_name": "Vera",
-        "vera_voice_id": None,
-        "vera_personality": "professional",
-        "financial_profile_id": None,
-        "preferences": {
-            "currency": "USD",
-            "theme": "dark",
-            "creep_detection_threshold": 5.0,
-            "notification_budget_threshold": 0.8,
-        },
-        "onboarding_complete": False,
-        "solana_wallet_pubkey": None,
-        "phone_number": None,
-    }
-    await db.users.insert_one(user_doc)
+        now = datetime.utcnow()
+        user_doc = {
+            "_id": ObjectId(),
+            "email": email,
+            "name": name or email.split("@")[0],
+            "password_hash": hash_password(password),
+            "avatar_url": None,
+            "created_at": now,
+            "updated_at": None,
+            "vera_character_id": None,
+            "vera_name": "Vera",
+            "vera_voice_id": None,
+            "vera_personality": "professional",
+            "financial_profile_id": None,
+            "preferences": {
+                "currency": "USD",
+                "theme": "dark",
+                "creep_detection_threshold": 5.0,
+                "notification_budget_threshold": 0.8,
+            },
+            "onboarding_complete": False,
+            "solana_wallet_pubkey": None,
+            "phone_number": None,
+        }
+        await db.users.insert_one(user_doc)
 
-    profile_doc = {
-        "_id": ObjectId(),
-        "user_id": user_doc["_id"],
-        "monthly_income": 0.0,
-        "monthly_budget": 3500.0,
-        "category_budgets": {},
-        "net_worth": 0.0,
-        "total_assets": 0.0,
-        "total_liabilities": 0.0,
-        "savings_goal_monthly": 0.0,
-        "financial_goals": [],
-        "last_synced": None,
-    }
-    await db.financial_profiles.insert_one(profile_doc)
-    await db.users.update_one(
-        {"_id": user_doc["_id"]},
-        {"$set": {"financial_profile_id": str(profile_doc["_id"])}},
-    )
+        profile_doc = {
+            "_id": ObjectId(),
+            "user_id": user_doc["_id"],
+            "monthly_income": 0.0,
+            "monthly_budget": 3500.0,
+            "category_budgets": {},
+            "net_worth": 0.0,
+            "total_assets": 0.0,
+            "total_liabilities": 0.0,
+            "savings_goal_monthly": 0.0,
+            "financial_goals": [],
+            "last_synced": None,
+        }
+        await db.financial_profiles.insert_one(profile_doc)
+        await db.users.update_one(
+            {"_id": user_doc["_id"]},
+            {"$set": {"financial_profile_id": str(profile_doc["_id"])}},
+        )
 
-    user_id = str(user_doc["_id"])
-    token = create_access_token(user_id)
+        user_id = str(user_doc["_id"])
+        token = create_access_token(user_id)
 
-    return {
-        "token": token,
-        "user_id": user_id,
-        "user": _safe_user(user_doc),
-    }
+        return {
+            "token": token,
+            "user_id": user_id,
+            "user": _safe_user(user_doc),
+        }
+    except OperationFailure as e:
+        _http_for_mongo(e)
 
 
 @router.post("/login")
@@ -106,7 +125,11 @@ async def login(body: dict):
         raise HTTPException(400, "email and password are required")
 
     db = get_database()
-    user = await db.users.find_one({"email": email})
+    try:
+        user = await db.users.find_one({"email": email})
+    except OperationFailure as e:
+        _http_for_mongo(e)
+
     if not user:
         raise HTTPException(401, "Invalid email or password")
 
