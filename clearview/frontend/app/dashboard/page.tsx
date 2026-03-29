@@ -376,11 +376,14 @@ export default function DashboardOverview() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-2xl bg-card border border-border p-5">
-          <h3 className="text-sm font-bold text-foreground mb-4">Financial Goals</h3>
+      <div className="grid grid-cols-3 gap-4">
+        <div className="col-span-2 rounded-2xl bg-card border border-border p-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-foreground">Financial Goals</h3>
+            <a href="/dashboard/goals" className="text-xs text-primary hover:underline">View all →</a>
+          </div>
           {financialGoals.length > 0 ? (
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-x-6 gap-y-4">
               {financialGoals.map((goal) => {
                 const current = goal.current_amount ?? 0;
                 const target = goal.target_amount ?? 0;
@@ -405,7 +408,11 @@ export default function DashboardOverview() {
               })}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No financial goals set. Add them via the Goals page.</p>
+            <div className="text-center py-6">
+              <Target size={32} className="mx-auto mb-2 text-muted-foreground opacity-40" />
+              <p className="text-sm text-muted-foreground">No financial goals set yet.</p>
+              <a href="/dashboard/goals" className="text-xs text-primary hover:underline mt-1 inline-block">Set goals →</a>
+            </div>
           )}
         </div>
 

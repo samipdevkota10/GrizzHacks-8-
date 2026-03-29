@@ -8,8 +8,10 @@ const GOAL_ICONS: Record<string, React.ElementType> = { Shield, Plane, Graduatio
 
 interface FinancialGoal {
   name: string;
-  target: number;
-  current: number;
+  target_amount?: number;
+  current_amount?: number;
+  target?: number;
+  current?: number;
   icon?: string;
 }
 
@@ -59,9 +61,11 @@ export default function GoalsPage() {
       </div>
 
       {goals.length > 0 ? (
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {goals.map((goal) => {
-            const pct = goal.target > 0 ? Math.round((goal.current / goal.target) * 100) : 0;
+            const current = goal.current_amount ?? goal.current ?? 0;
+            const target = goal.target_amount ?? goal.target ?? 0;
+            const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
             const GoalIcon = GOAL_ICONS[goal.icon || "Target"] || Target;
             return (
               <div key={goal.name} className="rounded-2xl bg-card border border-border p-6">
@@ -76,8 +80,8 @@ export default function GoalsPage() {
                   <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${pct}%` }} />
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-sm font-medium text-foreground tabular-nums">${goal.current.toLocaleString()}</span>
-                  <span className="text-sm text-muted-foreground tabular-nums">${goal.target.toLocaleString()}</span>
+                  <span className="text-sm font-medium text-foreground tabular-nums">${current.toLocaleString()}</span>
+                  <span className="text-sm text-muted-foreground tabular-nums">${target.toLocaleString()}</span>
                 </div>
               </div>
             );
