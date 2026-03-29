@@ -12,18 +12,6 @@ from objectid_util import parse_user_object_id
 router = APIRouter(prefix="/api/search", tags=["search"])
 
 
-def _serialize(doc: dict) -> dict:
-    if doc is None:
-        return {}
-    out = dict(doc)
-    for k, v in out.items():
-        if isinstance(v, ObjectId):
-            out[k] = str(v)
-        elif isinstance(v, datetime):
-            out[k] = v.isoformat()
-    return out
-
-
 def _parse_amount_filter(q: str) -> tuple[str, float | None, float | None]:
     """Extract 'over $X' / 'under $X' from query, return (cleaned_query, min_amt, max_amt)."""
     min_amt = max_amt = None

@@ -138,6 +138,7 @@ async def ingest_transaction(body: dict, background_tasks: BackgroundTasks):
             "_id": ObjectId(),
             "user_id": uid,
             "transaction_id": ObjectId(tx_id),
+            "virtual_card_id": body.get("virtual_card_id"),
             "amount": amount,
             "merchant_name": merchant_name,
             "category": category,

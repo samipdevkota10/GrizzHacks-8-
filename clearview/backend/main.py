@@ -25,7 +25,7 @@ from routers import dashboard
 
 app.include_router(dashboard.router)
 
-for module_name in ["auth", "advisor", "cards", "alerts", "voice", "transactions", "vera_agent", "subscriptions", "blockchain", "plaid", "notifications"]:
+for module_name in ["auth", "advisor", "cards", "alerts", "voice", "transactions", "vera_agent", "subscriptions", "blockchain", "plaid", "notifications", "card_optimizer", "predictions", "search"]:
     try:
         mod = __import__(f"routers.{module_name}", fromlist=["router"])
         app.include_router(mod.router)
