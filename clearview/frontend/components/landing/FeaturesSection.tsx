@@ -77,51 +77,34 @@ const FeaturesSection = () => {
 
         {/* Feature Grid - Row 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* AI Fraud Detection - Left */}
-          <AnimatedBlock delay={0.1} className="relative rounded-3xl bg-warm border border-border overflow-hidden p-8 pb-0 min-h-[440px] flex flex-col">
-            <div className="flex-1 relative z-10">
+          {/* AI Fraud Detection */}
+          <AnimatedBlock delay={0.1} className="relative rounded-3xl bg-warm border border-border overflow-hidden p-8 flex flex-col">
+            <div className="relative z-10 mb-4">
               <h3 className="text-xl font-bold text-foreground mb-2">AI Fraud Detection</h3>
               <p className="text-sm text-muted-foreground max-w-xs">
                 Vera analyzes every transaction in real time. If something looks suspicious, she calls you immediately to verify before it goes through.
               </p>
             </div>
-            {/* Decorative elements */}
-            <div className="absolute top-6 right-6">
-              <img src="/images/feature-dots.png" alt="" className="w-8 opacity-40" />
-            </div>
-            <div className="absolute left-0 top-1/3">
-              <img src="/images/feature-stripe1.png" alt="" className="w-8 opacity-30" />
-            </div>
-            <div className="absolute right-0 top-1/4">
-              <img src="/images/feature-stripe2.png" alt="" className="w-8 opacity-30" />
-            </div>
-            <div className="relative mt-4 flex justify-center items-end">
-              <img src="/images/feature-phone.png" alt="Finance app" className="w-48 md:w-56 relative z-10" />
-              <div className="absolute bottom-0 right-4 md:right-12">
-                <img src="/images/feature-crypto.png" alt="Crypto wallet" className="w-48 md:w-64 rounded-2xl shadow-lg" />
-              </div>
+            <div className="flex-1 flex justify-center items-center">
+              <img src="/images/feature-fraud-detection.svg" alt="AI fraud detection shield" className="w-full max-w-[280px] h-auto" />
             </div>
           </AnimatedBlock>
 
-          {/* Smart Financial Dashboard - Right */}
-          <AnimatedBlock delay={0.2} className="relative rounded-3xl bg-warm border border-border overflow-hidden p-8 pb-0 min-h-[440px] flex flex-col">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="text-xl font-bold text-foreground mb-2">Smart Financial Dashboard</h3>
-                <p className="text-sm text-muted-foreground max-w-sm">
-                  Get a real-time overview of income, expenses, budgets, and cash flow predictions — all in one clean dashboard.
-                </p>
-              </div>
-              <div className="flex flex-col items-end gap-2">
-                <img src="/images/feature-badge.png" alt="" className="w-20" />
-                <span className="text-primary font-bold text-sm uppercase tracking-wide">Live</span>
+          {/* Smart Financial Dashboard */}
+          <AnimatedBlock delay={0.2} className="relative rounded-3xl bg-warm border border-border overflow-hidden p-8 flex flex-col">
+            <div className="relative z-10 mb-4">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-foreground mb-2">Smart Financial Dashboard</h3>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Get a real-time overview of income, expenses, budgets, and cash flow predictions — all in one clean dashboard.
+                  </p>
+                </div>
+                <span className="text-primary font-bold text-sm uppercase tracking-wide ml-3">Live</span>
               </div>
             </div>
-            <div className="mt-3">
-              <img src="/images/feature-graph.png" alt="Graph" className="w-full max-w-sm rounded-xl" />
-            </div>
-            <div className="relative mt-2 flex justify-center">
-              <img src="/images/feature-chart.png" alt="Dashboard chart" className="w-full rounded-t-2xl" />
+            <div className="flex-1 flex justify-center items-center">
+              <img src="/images/feature-dashboard.svg" alt="Financial dashboard" className="w-full max-w-[320px] h-auto" />
             </div>
           </AnimatedBlock>
         </div>
@@ -135,33 +118,28 @@ const FeaturesSection = () => {
         {/* Feature Grid - Row 2 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* AI Purchase Advisor */}
-          <AnimatedBlock delay={0.3} className="relative rounded-3xl bg-warm border border-border overflow-hidden p-8 pb-0 min-h-[440px] flex flex-col">
-            <div className="flex-1">
+          <AnimatedBlock delay={0.3} className="relative rounded-3xl bg-warm border border-border overflow-hidden p-8 flex flex-col">
+            <div className="relative z-10 mb-4">
               <h3 className="text-xl font-bold text-foreground mb-2">AI Purchase Advisor</h3>
               <p className="text-sm text-muted-foreground max-w-sm">
                 Before you buy anything, ask Vera. She analyzes the impact on your budget, goals, and spending patterns — and tells you if it's worth it.
               </p>
             </div>
-            <div className="relative mt-6 flex justify-center items-end">
-              <img src="/images/feature-card1.png" alt="Account card" className="w-36 md:w-44 relative z-10 -mr-6 rounded-2xl shadow-lg" />
-              <img src="/images/feature-card2.png" alt="Account card" className="w-36 md:w-44 relative z-20 rounded-2xl shadow-lg" />
-              <div className="absolute top-0 right-4">
-                <img src="/images/feature-today.png" alt="Today" className="w-16" />
-              </div>
+            <div className="flex-1 flex justify-center items-center">
+              <img src="/images/feature-purchase-advisor.svg" alt="Purchase analysis" className="w-full max-w-[280px] h-auto" />
             </div>
           </AnimatedBlock>
 
           {/* Voice-Powered Assistant */}
-          <AnimatedBlock delay={0.4} className="relative rounded-3xl bg-warm border border-border overflow-hidden p-8 pb-0 min-h-[440px] flex flex-col">
-            <div className="flex-1">
+          <AnimatedBlock delay={0.4} className="relative rounded-3xl bg-warm border border-border overflow-hidden p-8 flex flex-col">
+            <div className="relative z-10 mb-4">
               <h3 className="text-xl font-bold text-foreground mb-2">Voice-Powered Assistant</h3>
               <p className="text-sm text-muted-foreground max-w-sm">
                 Talk to Vera anytime through the app. She knows your finances, tracks your bills, and gives personalized advice — no typing required.
               </p>
             </div>
-            <div className="relative mt-6 flex justify-center gap-4 items-end">
-              <img src="/images/feature-card1.png" alt="Card" className="w-36 md:w-44 rounded-2xl shadow-lg" />
-              <img src="/images/feature-card2.png" alt="Card" className="w-36 md:w-44 rounded-2xl shadow-lg" />
+            <div className="flex-1 flex justify-center items-center">
+              <img src="/images/feature-voice-assistant.svg" alt="Voice assistant" className="w-full max-w-[280px] h-auto" />
             </div>
           </AnimatedBlock>
         </div>

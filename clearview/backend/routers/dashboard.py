@@ -93,12 +93,12 @@ async def get_dashboard(user_id: str):
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     month_transactions = [t for t in recent_transactions if t["date"] >= month_start]
-    month_spent = sum(abs(t["amount"]) for t in month_transactions if t["amount"] < 0)
-    month_income = sum(t["amount"] for t in month_transactions if t["amount"] > 0)
+    month_spent = sum(abs(t["amount"]) for t in month_transactions if t["amount"] < 0 and t.get("status") != "denied")
+    month_income = sum(t["amount"] for t in month_transactions if t["amount"] > 0 and t.get("status") != "denied")
 
     by_category = {}
     for t in month_transactions:
-        if t["amount"] < 0:
+        if t["amount"] < 0 and t.get("status") != "denied":
             cat = t.get("category", "other")
             by_category[cat] = by_category.get(cat, 0) + abs(t["amount"])
 
@@ -247,8 +247,8 @@ async def get_monthly_trend(user_id: str, months: int = 6):
             "user_id": uid,
             "date": {"$gte": m_start, "$lt": m_end},
         }).to_list(500)
-        income = sum(t["amount"] for t in txns if t["amount"] > 0)
-        spending = sum(abs(t["amount"]) for t in txns if t["amount"] < 0)
+        income = sum(t["amount"] for t in txns if t["amount"] > 0 and t.get("status") != "denied")
+        spending = sum(abs(t["amount"]) for t in txns if t["amount"] < 0 and t.get("status") != "denied")
         result.append({
             "month": month_names[mm - 1],
             "income": round(income),

@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <!-- Central microphone -->
+  <g transform="translate(200, 120)">
+    <!-- Mic body -->
+    <rect x="-18" y="-50" width="36" height="65" rx="18" fill="#E8734A" fill-opacity="0.15" stroke="#E8734A" stroke-width="2"/>
+    <!-- Mic grille lines -->
+    <line x1="-10" y1="-35" x2="10" y2="-35" stroke="#E8734A" stroke-width="1" stroke-opacity="0.3"/>
+    <line x1="-10" y1="-25" x2="10" y2="-25" stroke="#E8734A" stroke-width="1" stroke-opacity="0.3"/>
+    <line x1="-10" y1="-15" x2="10" y2="-15" stroke="#E8734A" stroke-width="1" stroke-opacity="0.3"/>
+    <!-- Mic stand -->
+    <path d="M-30 20C-30-10-18-30-18-30" stroke="#E8734A" stroke-width="2" stroke-opacity="0.4" fill="none"/>
+    <path d="M30 20C30-10 18-30 18-30" stroke="#E8734A" stroke-width="2" stroke-opacity="0.4" fill="none"/>
+    <line x1="0" y1="20" x2="0" y2="45" stroke="#E8734A" stroke-width="2" stroke-opacity="0.4"/>
+    <line x1="-15" y1="45" x2="15" y2="45" stroke="#E8734A" stroke-width="2.5" stroke-opacity="0.4" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Sound waves - left -->
+  <path d="M130 90C120 105 120 135 130 150" stroke="#E8734A" stroke-width="2" stroke-opacity="0.3" stroke-linecap="round" fill="none"/>
+  <path d="M115 78C100 100 100 140 115 162" stroke="#E8734A" stroke-width="2" stroke-opacity="0.2" stroke-linecap="round" fill="none"/>
+  <path d="M100 68C80 95 80 145 100 172" stroke="#E8734A" stroke-width="2" stroke-opacity="0.1" stroke-linecap="round" fill="none"/>
+  
+  <!-- Sound waves - right -->
+  <path d="M270 90C280 105 280 135 270 150" stroke="#E8734A" stroke-width="2" stroke-opacity="0.3" stroke-linecap="round" fill="none"/>
+  <path d="M285 78C300 100 300 140 285 162" stroke="#E8734A" stroke-width="2" stroke-opacity="0.2" stroke-linecap="round" fill="none"/>
+  <path d="M300 68C320 95 320 145 300 172" stroke="#E8734A" stroke-width="2" stroke-opacity="0.1" stroke-linecap="round" fill="none"/>
+  
+  <!-- Chat bubble - left -->
+  <g transform="translate(65, 60)">
+    <rect x="0" y="0" width="55" height="40" rx="10" fill="white" stroke="#E8734A" stroke-width="1.5" stroke-opacity="0.25"/>
+    <path d="M20 40L15 52L30 40" fill="white" stroke="#E8734A" stroke-width="1.5" stroke-opacity="0.25"/>
+    <rect x="10" y="12" width="35" height="5" rx="2.5" fill="#E8734A" fill-opacity="0.2"/>
+    <rect x="10" y="22" width="25" height="5" rx="2.5" fill="#E8734A" fill-opacity="0.12"/>
+  </g>
+  
+  <!-- Chat bubble - right (Vera response) -->
+  <g transform="translate(280, 40)">
+    <rect x="0" y="0" width="75" height="55" rx="10" fill="#E8734A" fill-opacity="0.1" stroke="#E8734A" stroke-width="1.5" stroke-opacity="0.3"/>
+    <path d="M55 55L60 68L45 55" fill="#E8734A" fill-opacity="0.1" stroke="#E8734A" stroke-width="1.5" stroke-opacity="0.3"/>
+    <rect x="10" y="12" width="55" height="5" rx="2.5" fill="#E8734A" fill-opacity="0.25"/>
+    <rect x="10" y="22" width="40" height="5" rx="2.5" fill="#E8734A" fill-opacity="0.15"/>
+    <rect x="10" y="32" width="50" height="5" rx="2.5" fill="#E8734A" fill-opacity="0.2"/>
+  </g>
+  
+  <!-- Waveform visualization at bottom -->
+  <g transform="translate(100, 215)">
+    <rect x="0" y="15" width="4" height="20" rx="2" fill="#E8734A" fill-opacity="0.15"/>
+    <rect x="10" y="8" width="4" height="34" rx="2" fill="#E8734A" fill-opacity="0.2"/>
+    <rect x="20" y="0" width="4" height="50" rx="2" fill="#E8734A" fill-opacity="0.3"/>
+    <rect x="30" y="10" width="4" height="30" rx="2" fill="#E8734A" fill-opacity="0.25"/>
+    <rect x="40" y="5" width="4" height="40" rx="2" fill="#E8734A" fill-opacity="0.35"/>
+    <rect x="50" y="12" width="4" height="26" rx="2" fill="#E8734A" fill-opacity="0.2"/>
+    <rect x="60" y="3" width="4" height="44" rx="2" fill="#E8734A" fill-opacity="0.4"/>
+    <rect x="70" y="8" width="4" height="34" rx="2" fill="#E8734A" fill-opacity="0.25"/>
+    <rect x="80" y="15" width="4" height="20" rx="2" fill="#E8734A" fill-opacity="0.15"/>
+    <rect x="90" y="5" width="4" height="40" rx="2" fill="#E8734A" fill-opacity="0.3"/>
+    <rect x="100" y="10" width="4" height="30" rx="2" fill="#E8734A" fill-opacity="0.2"/>
+    <rect x="110" y="0" width="4" height="50" rx="2" fill="#E8734A" fill-opacity="0.35"/>
+    <rect x="120" y="8" width="4" height="34" rx="2" fill="#E8734A" fill-opacity="0.2"/>
+    <rect x="130" y="12" width="4" height="26" rx="2" fill="#E8734A" fill-opacity="0.25"/>
+    <rect x="140" y="3" width="4" height="44" rx="2" fill="#E8734A" fill-opacity="0.3"/>
+    <rect x="150" y="10" width="4" height="30" rx="2" fill="#E8734A" fill-opacity="0.2"/>
+    <rect x="160" y="5" width="4" height="40" rx="2" fill="#E8734A" fill-opacity="0.15"/>
+    <rect x="170" y="12" width="4" height="26" rx="2" fill="#E8734A" fill-opacity="0.2"/>
+    <rect x="180" y="8" width="4" height="34" rx="2" fill="#E8734A" fill-opacity="0.25"/>
+    <rect x="190" y="15" width="4" height="20" rx="2" fill="#E8734A" fill-opacity="0.15"/>
+  </g>
+  
+  <!-- Vera label -->
+  <g transform="translate(305, 100)">
+    <rect x="0" y="0" width="50" height="22" rx="11" fill="#E8734A" fill-opacity="0.12"/>
+    <text x="25" y="15" text-anchor="middle" font-size="10" fill="#E8734A" font-weight="600" font-family="system-ui">Vera</text>
+  </g>
+</svg>

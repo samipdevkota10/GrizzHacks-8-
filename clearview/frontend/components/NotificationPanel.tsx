@@ -21,10 +21,10 @@ import {
 } from "@/lib/api";
 
 const TYPE_CONFIG: Record<string, { icon: typeof Bell; color: string }> = {
-  price_creep: { icon: TrendingUp, color: "text-amber-500" },
-  fraud_denied: { icon: ShieldAlert, color: "text-red-500" },
-  fraud_alert: { icon: AlertTriangle, color: "text-red-500" },
-  card_paused: { icon: CreditCard, color: "text-blue-500" },
+  price_creep: { icon: TrendingUp, color: "text-primary/70" },
+  fraud_denied: { icon: ShieldAlert, color: "text-primary" },
+  fraud_alert: { icon: AlertTriangle, color: "text-primary" },
+  card_paused: { icon: CreditCard, color: "text-muted-foreground" },
 };
 
 function timeAgo(dateStr: string): string {

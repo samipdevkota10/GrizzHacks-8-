@@ -6,25 +6,25 @@ import { resolveFraudAlert, type FraudAlert } from "@/lib/api";
 
 const STATUS_CONFIG = {
   pending: {
-    bg: "bg-red-50 border-red-300 dark:bg-red-950/30 dark:border-red-800/50",
+    bg: "bg-warm border-primary/30",
     icon: ShieldAlert,
-    iconColor: "text-red-600 dark:text-red-400",
+    iconColor: "text-primary",
     label: "Fraud Alert",
-    labelBg: "bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300",
+    labelBg: "bg-primary/10 text-primary",
   },
   calling: {
-    bg: "bg-amber-50 border-amber-300 dark:bg-amber-950/30 dark:border-amber-800/50",
+    bg: "bg-warm border-primary/20",
     icon: Phone,
-    iconColor: "text-amber-600 dark:text-amber-400",
+    iconColor: "text-primary/80",
     label: "Vera Calling You",
-    labelBg: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300",
+    labelBg: "bg-primary/10 text-primary/80",
   },
   call_failed: {
-    bg: "bg-orange-50 border-orange-300 dark:bg-orange-950/30 dark:border-orange-800/50",
+    bg: "bg-warm border-primary/25",
     icon: ShieldAlert,
-    iconColor: "text-orange-600 dark:text-orange-400",
+    iconColor: "text-primary/70",
     label: "Call Failed",
-    labelBg: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300",
+    labelBg: "bg-primary/10 text-primary/70",
   },
 } as const;
 
@@ -64,8 +64,8 @@ function ActiveAlertCard({ alert, onResolved }: { alert: FraudAlert; onResolved:
           </span>
           <span className={`text-[10px] font-semibold uppercase px-1.5 py-0.5 rounded ${
             alert.severity === "high"
-              ? "bg-red-200 text-red-800 dark:bg-red-900 dark:text-red-300"
-              : "bg-orange-200 text-orange-800 dark:bg-orange-900 dark:text-orange-300"
+              ? "bg-primary/15 text-primary"
+              : "bg-secondary text-muted-foreground"
           }`}>
             {alert.severity}
           </span>
@@ -75,7 +75,7 @@ function ActiveAlertCard({ alert, onResolved }: { alert: FraudAlert; onResolved:
         </p>
         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{alert.reason}</p>
         {alert.status === "calling" ? (
-          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 font-medium animate-pulse">
+          <p className="text-xs text-primary/80 mt-1.5 font-medium animate-pulse">
             Vera is calling your phone now — your response on the call will be applied automatically.
           </p>
         ) : (
@@ -84,7 +84,7 @@ function ActiveAlertCard({ alert, onResolved }: { alert: FraudAlert; onResolved:
             <button
               onClick={() => handleResolve("user_confirmed")}
               disabled={resolving !== null}
-              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-foreground text-background hover:opacity-80 disabled:opacity-50 transition-colors"
             >
               {resolving === "confirm" ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
               Yes, approve
@@ -92,7 +92,7 @@ function ActiveAlertCard({ alert, onResolved }: { alert: FraudAlert; onResolved:
             <button
               onClick={() => handleResolve("user_denied")}
               disabled={resolving !== null}
-              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-border bg-secondary text-foreground hover:bg-muted disabled:opacity-50 transition-colors"
             >
               {resolving === "deny" ? <Loader2 size={11} className="animate-spin" /> : <XCircle size={11} />}
               No, block it

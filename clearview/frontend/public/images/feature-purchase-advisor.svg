@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <!-- Shopping bag -->
+  <path d="M120 100H280L265 260H135L120 100Z" fill="#E8734A" fill-opacity="0.08" stroke="#E8734A" stroke-width="2" stroke-opacity="0.3"/>
+  <path d="M160 100V80C160 58 178 40 200 40C222 40 240 58 240 80V100" stroke="#E8734A" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+  
+  <!-- Magnifying glass overlay -->
+  <g transform="translate(260, 60)">
+    <circle cx="0" cy="0" r="35" fill="white" fill-opacity="0.9" stroke="#E8734A" stroke-width="2.5"/>
+    <line x1="24" y1="24" x2="48" y2="48" stroke="#E8734A" stroke-width="3" stroke-linecap="round"/>
+    <!-- Checkmark inside magnifying glass -->
+    <path d="M-12 2L-4 10L14-8" stroke="#4CAF50" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  
+  <!-- Budget impact bar -->
+  <g transform="translate(70, 160)">
+    <rect x="30" y="0" width="140" height="24" rx="6" fill="white" stroke="#E8734A" stroke-width="1" stroke-opacity="0.2"/>
+    <rect x="32" y="2" width="90" height="20" rx="5" fill="#E8734A" fill-opacity="0.15"/>
+    <text x="50" y="16" font-size="9" fill="#E8734A" font-weight="600" font-family="system-ui">Budget Impact</text>
+  </g>
+  
+  <!-- Goal progress bar -->
+  <g transform="translate(70, 195)">
+    <rect x="30" y="0" width="140" height="24" rx="6" fill="white" stroke="#E8734A" stroke-width="1" stroke-opacity="0.2"/>
+    <rect x="32" y="2" width="60" height="20" rx="5" fill="#4CAF50" fill-opacity="0.2"/>
+    <text x="50" y="16" font-size="9" fill="#4CAF50" font-weight="600" font-family="system-ui">Goal Status</text>
+  </g>
+  
+  <!-- Worth it? badge -->
+  <g transform="translate(200, 220)">
+    <rect x="0" y="0" width="100" height="32" rx="16" fill="#E8734A" fill-opacity="0.12" stroke="#E8734A" stroke-width="1.5" stroke-opacity="0.3"/>
+    <text x="50" y="21" text-anchor="middle" font-size="11" fill="#E8734A" font-weight="700" font-family="system-ui">Worth it? </text>
+  </g>
+  
+  <!-- Price tag -->
+  <g transform="translate(310, 140)">
+    <rect x="0" y="0" width="55" height="30" rx="6" fill="white" stroke="#E8734A" stroke-width="1.5" stroke-opacity="0.25"/>
+    <text x="27.5" y="20" text-anchor="middle" font-size="13" fill="#E8734A" font-weight="700" font-family="system-ui">$49</text>
+  </g>
+  
+  <!-- Decorative elements -->
+  <circle cx="80" cy="60" r="4" fill="#E8734A" fill-opacity="0.1"/>
+  <circle cx="340" cy="230" r="3" fill="#E8734A" fill-opacity="0.12"/>
+  <circle cx="60" cy="240" r="5" fill="#E8734A" fill-opacity="0.08"/>
+</svg>

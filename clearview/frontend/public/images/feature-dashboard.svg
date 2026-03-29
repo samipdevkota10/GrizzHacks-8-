@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" fill="none">
+  <!-- Dashboard frame -->
+  <rect x="40" y="30" width="320" height="240" rx="16" fill="white" stroke="#E8734A" stroke-width="1.5" stroke-opacity="0.25"/>
+  
+  <!-- Top bar -->
+  <rect x="40" y="30" width="320" height="36" rx="16" fill="#E8734A" fill-opacity="0.06"/>
+  <circle cx="62" cy="48" r="5" fill="#E8734A" fill-opacity="0.3"/>
+  <circle cx="78" cy="48" r="5" fill="#E8734A" fill-opacity="0.15"/>
+  <circle cx="94" cy="48" r="5" fill="#E8734A" fill-opacity="0.1"/>
+  <rect x="280" y="42" width="60" height="12" rx="6" fill="#E8734A" fill-opacity="0.1"/>
+  
+  <!-- Stat cards row -->
+  <rect x="60" y="80" width="88" height="50" rx="10" fill="#E8734A" fill-opacity="0.08"/>
+  <rect x="70" y="90" width="40" height="6" rx="3" fill="#E8734A" fill-opacity="0.2"/>
+  <rect x="70" y="102" width="55" height="10" rx="3" fill="#E8734A" fill-opacity="0.35"/>
+  <rect x="70" y="118" width="30" height="4" rx="2" fill="#4CAF50" fill-opacity="0.4"/>
+  
+  <rect x="156" y="80" width="88" height="50" rx="10" fill="#E8734A" fill-opacity="0.08"/>
+  <rect x="166" y="90" width="40" height="6" rx="3" fill="#E8734A" fill-opacity="0.2"/>
+  <rect x="166" y="102" width="55" height="10" rx="3" fill="#E8734A" fill-opacity="0.35"/>
+  <rect x="166" y="118" width="25" height="4" rx="2" fill="#E8734A" fill-opacity="0.3"/>
+  
+  <rect x="252" y="80" width="88" height="50" rx="10" fill="#E8734A" fill-opacity="0.08"/>
+  <rect x="262" y="90" width="40" height="6" rx="3" fill="#E8734A" fill-opacity="0.2"/>
+  <rect x="262" y="102" width="55" height="10" rx="3" fill="#E8734A" fill-opacity="0.35"/>
+  <rect x="262" y="118" width="35" height="4" rx="2" fill="#4CAF50" fill-opacity="0.4"/>
+  
+  <!-- Chart area -->
+  <rect x="60" y="145" width="185" height="110" rx="10" fill="#E8734A" fill-opacity="0.04"/>
+  <!-- Chart line -->
+  <polyline points="75,230 100,215 125,225 150,195 175,200 200,170 225,185" stroke="#E8734A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Chart area fill -->
+  <path d="M75,230 100,215 125,225 150,195 175,200 200,170 225,185 225,240 75,240Z" fill="#E8734A" fill-opacity="0.06"/>
+  <!-- Chart dots -->
+  <circle cx="150" cy="195" r="4" fill="#E8734A" fill-opacity="0.6"/>
+  <circle cx="200" cy="170" r="4" fill="#E8734A"/>
+  
+  <!-- Sidebar list -->
+  <rect x="255" y="145" width="85" height="110" rx="10" fill="#E8734A" fill-opacity="0.04"/>
+  <rect x="265" y="158" width="65" height="8" rx="4" fill="#E8734A" fill-opacity="0.15"/>
+  <rect x="265" y="174" width="50" height="8" rx="4" fill="#E8734A" fill-opacity="0.1"/>
+  <rect x="265" y="190" width="60" height="8" rx="4" fill="#E8734A" fill-opacity="0.12"/>
+  <rect x="265" y="206" width="40" height="8" rx="4" fill="#E8734A" fill-opacity="0.08"/>
+  <rect x="265" y="222" width="55" height="8" rx="4" fill="#E8734A" fill-opacity="0.1"/>
+  
+  <!-- Live indicator -->
+  <circle cx="340" cy="48" r="3" fill="#4CAF50"/>
+</svg>

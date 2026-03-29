@@ -109,7 +109,7 @@ function StatCard({
         </div>
       </div>
       <p className="text-2xl font-bold text-foreground tabular-nums">{value}</p>
-      <div className={`flex items-center gap-1 mt-1 text-xs font-medium ${positive ? "text-green-600" : "text-red-500"}`}>
+      <div className={`flex items-center gap-1 mt-1 text-xs font-medium ${positive ? "text-foreground" : "text-primary"}`}>
         {positive ? <TrendingUp size={12} /> : <TrendingDown size={12} />}
         {change}
       </div>
@@ -306,7 +306,7 @@ export default function DashboardOverview() {
         {fraudAlerts.filter((a) => a.status !== "resolved").length === 0 && (
           <div className="flex items-center gap-2">
             {testFraudResult && (
-              <span className={`text-[10px] font-medium max-w-[180px] truncate ${testFraudResult.startsWith("Call initiated") ? "text-green-600" : "text-muted-foreground"}`}>
+              <span className={`text-[10px] font-medium max-w-[180px] truncate ${testFraudResult.startsWith("Call initiated") ? "text-primary" : "text-muted-foreground"}`}>
                 {testFraudResult}
               </span>
             )}
@@ -509,7 +509,7 @@ export default function DashboardOverview() {
                   </div>
                   <TxStatusBadge status={tx.status} anomalyFlag={tx.anomaly_flag} />
                   <div className="text-right">
-                    <p className={`text-sm font-medium tabular-nums ${tx.amount > 0 ? "text-green-600" : "text-foreground"}`}>
+                    <p className={`text-sm font-medium tabular-nums ${tx.amount > 0 ? "text-foreground" : "text-foreground"}`}>
                       {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
                     </p>
                     <p className="text-xs text-muted-foreground">
