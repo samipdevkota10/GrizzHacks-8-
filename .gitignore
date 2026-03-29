@@ -46,3 +46,6 @@ design-system/
 # Misc
 *.log
 npm-debug.log*
+
+# Local MongoDB dumps (mongodump --out)
+clearview/backend/dump/

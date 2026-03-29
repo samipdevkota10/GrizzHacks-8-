@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_CARDHOLDER_ID: str = ""
     FRONTEND_URL: str = "http://localhost:3000"
+    # Comma-separated browser origins for CORS (e.g. Vercel prod + previews).
+    # If empty, allows FRONTEND_URL plus local dev URLs below.
+    CORS_ORIGINS: str = ""
 
     ELEVENLABS_PHONE_NUMBER_ID: str = ""
     USER_PHONE_NUMBER: str = ""
@@ -33,6 +36,25 @@ class Settings(BaseSettings):
         env_file=_BACKEND_DIR / ".env",
         env_file_encoding="utf-8",
     )
+
+    def cors_allow_origins(self) -> list[str]:
+        if self.CORS_ORIGINS.strip():
+            items = [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
+        else:
+            items = [
+                self.FRONTEND_URL.strip(),
+                # Deployed Vercel app; keeps CORS working if Railway FRONTEND_URL is wrong
+                "https://grizz-hacks-8.vercel.app",
+                "http://localhost:3000",
+                "http://localhost:3001",
+            ]
+        seen: set[str] = set()
+        out: list[str] = []
+        for o in items:
+            if o and o not in seen:
+                seen.add(o)
+                out.append(o)
+        return out
 
 
 settings = Settings()
