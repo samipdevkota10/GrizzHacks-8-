@@ -248,17 +248,26 @@ export default function AdvisorPage() {
 
     try {
       const res = await startAdvisorCall(uid);
+      if (!res.success) {
+        setCallError("The server did not confirm an outbound call. Check ElevenLabs and env vars.");
+        setCallState("error");
+        setTimeout(() => setCallState("idle"), 8000);
+        return;
+      }
       setCallPhoneLast4(res.phone_last4);
       setCallState("calling");
 
       setTimeout(() => {
         setCallState("idle");
         loadCalls();
-      }, 30000);
+      }, 120000);
     } catch (err) {
       setCallError(err instanceof Error ? err.message : "Failed to start call");
       setCallState("error");
-      setTimeout(() => setCallState("idle"), 5000);
+      setTimeout(() => {
+        setCallState("idle");
+        setCallError("");
+      }, 12000);
     }
   };
 
@@ -294,6 +303,10 @@ export default function AdvisorPage() {
             AI Advisor
           </h1>
           <p className="text-sm text-muted-foreground mt-1">Get personalized financial advice from Vera</p>
+          <p className="text-xs text-muted-foreground mt-1 max-w-xl">
+            Outbound calls use your profile phone in E.164 format (e.g. +1…). The server needs
+            ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID, and ELEVENLABS_PHONE_NUMBER_ID.
+          </p>
         </div>
 
         <div className="flex flex-col items-end gap-1">
@@ -322,7 +335,7 @@ export default function AdvisorPage() {
             </p>
           )}
           {callError && (
-            <p className="text-[11px] text-red-500">{callError}</p>
+            <p className="text-[11px] text-red-600 max-w-xs text-right whitespace-pre-wrap leading-snug">{callError}</p>
           )}
         </div>
       </div>
