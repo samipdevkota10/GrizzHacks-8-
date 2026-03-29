@@ -1,6 +1,9 @@
 import json
+import logging
 import google.generativeai as genai
 from config import settings
+
+logger = logging.getLogger(__name__)
 
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
@@ -120,6 +123,47 @@ class GeminiService:
             "verdict": verdict,
             "reasoning": reasoning,
         }
+
+    async def generate_fraud_call_script(self, facts: dict) -> dict | None:
+        """Produce a short, grounded phone script from structured facts only.
+
+        Returns dict with keys: opening_line, verification_question, yes_ack, no_ack.
+        Returns None if Gemini is not configured or generation fails.
+        """
+        if not settings.GEMINI_API_KEY:
+            return None
+
+        payload = json.dumps(facts, indent=2)
+        prompt = f"""You write the exact words Vera will say on a LIVE PHONE CALL to verify a suspicious charge.
+
+FACTS (use ONLY these; do not invent merchants, amounts, or reasons):
+{payload}
+
+Return ONLY valid JSON with this shape (no markdown):
+{{
+  "opening_line": "One sentence greeting + name + Clearview + the exact dollar amount and merchant from facts.",
+  "verification_question": "One short question asking if they authorized THIS charge only.",
+  "yes_ack": "One sentence if they confirm (approve this charge, thanks, goodbye).",
+  "no_ack": "One sentence if they deny (freeze card, flag for review)."
+}}
+Rules: Mention the dollar amount and merchant name in opening_line. Stay under 40 words per string."""
+
+        try:
+            response = await self.model.generate_content_async(
+                prompt,
+                generation_config=genai.GenerationConfig(
+                    temperature=0.2,
+                    max_output_tokens=400,
+                    response_mime_type="application/json",
+                ),
+            )
+            text = response.text.strip()
+            if text.startswith("```"):
+                text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+            return json.loads(text)
+        except Exception as exc:
+            logger.warning("generate_fraud_call_script failed: %s", exc)
+            return None
 
 
 gemini_service = GeminiService()

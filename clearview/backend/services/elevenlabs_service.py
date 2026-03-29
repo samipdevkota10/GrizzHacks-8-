@@ -74,8 +74,16 @@ class ElevenLabsService:
         to_number: str,
         prompt_override: str,
         first_message: str | None = None,
+        dynamic_variables: dict | None = None,
+        tools: list[dict] | None = None,
     ) -> dict:
         """Initiate an outbound phone call via ElevenLabs + Twilio.
+
+        ``dynamic_variables`` are merged into the agent context (use in dashboard
+        as ``{{variable_name}}``) and reinforce facts alongside the prompt override.
+
+        ``tools`` is an optional list of server-tool definitions (webhooks) that
+        the agent can invoke during the live call.
 
         Returns the ElevenLabs response containing ``conversation_id``
         and ``callSid``, or a mock dict if credentials are missing.
@@ -91,16 +99,22 @@ class ElevenLabsService:
         agent_override: dict = {"prompt": {"prompt": prompt_override}}
         if first_message:
             agent_override["first_message"] = first_message
+        if tools:
+            agent_override["tools"] = tools
+
+        client_data: dict = {
+            "conversation_config_override": {
+                "agent": agent_override,
+            }
+        }
+        if dynamic_variables:
+            client_data["dynamic_variables"] = dynamic_variables
 
         payload = {
             "agent_id": self.agent_id,
             "agent_phone_number_id": self.phone_number_id,
             "to_number": to_number,
-            "conversation_initiation_client_data": {
-                "conversation_config_override": {
-                    "agent": agent_override,
-                }
-            },
+            "conversation_initiation_client_data": client_data,
         }
 
         async with httpx.AsyncClient() as client:

@@ -2,30 +2,27 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Send, BrainCircuit, Sparkles } from "lucide-react";
+import { getUserId, sendChat } from "@/lib/api";
 
 type Message = { role: "user" | "ai"; text: string };
 
 const SUGGESTIONS = [
   "How can I reduce my spending?",
-  "Should I pay off my student loan faster?",
-  "Am I saving enough for an emergency fund?",
+  "Should I pay off my credit card faster?",
+  "Am I saving enough for emergencies?",
   "What subscriptions should I cancel?",
 ];
-
-const AI_RESPONSES: Record<string, string> = {
-  default:
-    "Based on your financial profile, you're doing well with a 39.4% savings rate. Your biggest opportunity is in the Shopping category — you're $60 over budget this month. Consider setting up spending alerts for that category. Would you like me to create a plan to reduce discretionary spending by 15%?",
-};
 
 export default function AdvisorPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "ai",
-      text: "Hi Alex! I'm Vera, your AI financial advisor. I've analyzed your accounts and I'm ready to help. What would you like to know about your finances?",
+      text: "Hi! I'm Vera, your AI financial advisor. I've analyzed your accounts and I'm ready to help. What would you like to know about your finances?",
     },
   ]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
+  const [conversationId, setConversationId] = useState<string | undefined>();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,12 +31,25 @@ export default function AdvisorPage() {
 
   const send = async (text: string) => {
     if (!text.trim()) return;
+    const uid = getUserId();
+    if (!uid) return;
+
     setMessages((m) => [...m, { role: "user", text }]);
     setInput("");
     setTyping(true);
-    await new Promise((r) => setTimeout(r, 1500));
-    setMessages((m) => [...m, { role: "ai", text: AI_RESPONSES.default }]);
-    setTyping(false);
+
+    try {
+      const res = await sendChat(uid, text, conversationId);
+      setConversationId(res.conversation_id);
+      setMessages((m) => [...m, { role: "ai", text: res.response }]);
+    } catch {
+      setMessages((m) => [
+        ...m,
+        { role: "ai", text: "Sorry, I couldn't process that request. Please make sure the backend is running." },
+      ]);
+    } finally {
+      setTyping(false);
+    }
   };
 
   return (
@@ -52,7 +62,6 @@ export default function AdvisorPage() {
         <p className="text-sm text-muted-foreground mt-1">Get personalized financial advice from Vera</p>
       </div>
 
-      {/* Chat area */}
       <div className="flex-1 overflow-y-auto rounded-2xl bg-card border border-border p-6 space-y-4">
         {messages.map((msg, i) => (
           <div key={i} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
@@ -87,7 +96,6 @@ export default function AdvisorPage() {
         <div ref={bottomRef} />
       </div>
 
-      {/* Suggestions */}
       {messages.length <= 1 && (
         <div className="flex gap-2 mt-3 flex-wrap">
           {SUGGESTIONS.map((s) => (
@@ -102,7 +110,6 @@ export default function AdvisorPage() {
         </div>
       )}
 
-      {/* Input */}
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -119,7 +126,7 @@ export default function AdvisorPage() {
         />
         <button
           type="submit"
-          disabled={!input.trim()}
+          disabled={!input.trim() || typing}
           className="w-11 h-11 rounded-xl bg-primary flex items-center justify-center text-primary-foreground hover:opacity-90 transition-all disabled:opacity-40"
         >
           <Send size={16} />

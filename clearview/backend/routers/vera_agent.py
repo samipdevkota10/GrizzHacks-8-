@@ -1,5 +1,6 @@
 """Vera agent router — call status, resolution, and history."""
 
+import logging
 from datetime import datetime
 
 from bson import ObjectId
@@ -7,6 +8,8 @@ from fastapi import APIRouter, HTTPException
 
 from database import get_database
 from objectid_util import parse_user_object_id
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/vera", tags=["vera-agent"])
 
@@ -93,6 +96,85 @@ async def record_call_result(body: dict):
 
     else:
         return {"message": "No answer recorded. Alert remains open for follow-up."}
+
+
+@router.post("/webhook/approve-transaction")
+async def webhook_approve(body: dict):
+    """ElevenLabs server tool webhook: user confirmed the transaction."""
+    alert_id = body.get("fraud_alert_id", "")
+    logger.info("Webhook approve called for alert %s — body: %s", alert_id, body)
+
+    if not alert_id:
+        return {"status": "ok", "message": "No alert ID provided, skipping."}
+
+    db = get_database()
+    alert = await db.fraud_alerts.find_one({"_id": ObjectId(alert_id)})
+    if not alert:
+        return {"status": "ok", "message": "Alert not found."}
+
+    now = datetime.utcnow()
+    await db.fraud_alerts.update_one(
+        {"_id": ObjectId(alert_id)},
+        {"$set": {"status": "resolved", "resolution": "user_confirmed", "call_resolved_at": now}},
+    )
+    tx_id = alert.get("transaction_id")
+    if tx_id:
+        await db.transactions.update_one(
+            {"_id": tx_id if isinstance(tx_id, ObjectId) else ObjectId(tx_id)},
+            {"$set": {"status": "approved", "anomaly_flag": False}},
+        )
+    logger.info("Transaction approved via webhook for alert %s", alert_id)
+    return {"status": "success", "message": "Transaction has been approved. You can confirm to the customer."}
+
+
+@router.post("/webhook/deny-transaction")
+async def webhook_deny(body: dict):
+    """ElevenLabs server tool webhook: user denied the transaction."""
+    alert_id = body.get("fraud_alert_id", "")
+    logger.info("Webhook deny called for alert %s — body: %s", alert_id, body)
+
+    if not alert_id:
+        return {"status": "ok", "message": "No alert ID provided, skipping."}
+
+    db = get_database()
+    alert = await db.fraud_alerts.find_one({"_id": ObjectId(alert_id)})
+    if not alert:
+        return {"status": "ok", "message": "Alert not found."}
+
+    now = datetime.utcnow()
+    await db.fraud_alerts.update_one(
+        {"_id": ObjectId(alert_id)},
+        {"$set": {"status": "resolved", "resolution": "user_denied", "call_resolved_at": now}},
+    )
+    tx_id = alert.get("transaction_id")
+    if tx_id:
+        await db.transactions.update_one(
+            {"_id": tx_id if isinstance(tx_id, ObjectId) else ObjectId(tx_id)},
+            {"$set": {"status": "denied"}},
+        )
+
+    if alert.get("virtual_card_id"):
+        card_id = alert["virtual_card_id"]
+        await db.virtual_cards.update_one(
+            {"_id": card_id if isinstance(card_id, ObjectId) else ObjectId(card_id)},
+            {"$set": {"status": "frozen", "paused_at": now}},
+        )
+
+    await db.notifications.insert_one({
+        "user_id": alert["user_id"],
+        "type": "fraud_denied",
+        "title": f"Suspicious charge at {alert['merchant_name']} blocked",
+        "message": (
+            f"A charge of ${abs(alert['amount']):,.2f} at {alert['merchant_name']} "
+            "was denied and the card has been frozen."
+        ),
+        "is_read": False,
+        "related_entity_type": "fraud_alert",
+        "related_entity_id": alert_id,
+        "created_at": now,
+    })
+    logger.info("Transaction denied + card frozen via webhook for alert %s", alert_id)
+    return {"status": "success", "message": "The card has been frozen and the transaction flagged for review. Reassure the customer their account is secured."}
 
 
 @router.get("/alerts/{user_id}")

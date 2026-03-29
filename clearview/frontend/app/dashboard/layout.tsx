@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import {
   LayoutDashboard,
   ArrowLeftRight,
@@ -14,7 +15,7 @@ import {
   Bell,
   Search,
 } from "lucide-react";
-import { USER } from "@/lib/mock-data";
+import { getUserId, fetchDashboard } from "@/lib/api";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -28,6 +29,22 @@ const NAV_ITEMS = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const [user, setUser] = useState<{ name: string; email: string; avatar_url: string | null } | null>(null);
+  const [alertCount, setAlertCount] = useState(0);
+
+  useEffect(() => {
+    const uid = getUserId();
+    if (!uid) return;
+    fetchDashboard(uid).then((d) => {
+      const u = d.user as { name?: string; email?: string; avatar_url?: string | null };
+      setUser({
+        name: u.name || "User",
+        email: u.email || "",
+        avatar_url: u.avatar_url || null,
+      });
+      setAlertCount(d.pending_alerts.length + d.notifications.length);
+    }).catch(() => {});
+  }, []);
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -64,10 +81,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         <div className="p-4 border-t border-border">
           <div className="flex items-center gap-3 px-2 mb-3">
-            <img src={USER.avatar} alt={USER.name} className="w-9 h-9 rounded-full object-cover" />
+            {user?.avatar_url ? (
+              <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-full object-cover" />
+            ) : (
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                {user?.name?.charAt(0) || "U"}
+              </div>
+            )}
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{USER.name}</p>
-              <p className="text-xs text-muted-foreground truncate">{USER.email}</p>
+              <p className="text-sm font-medium text-foreground truncate">{user?.name || "Loading..."}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
             </div>
           </div>
           <Link
@@ -95,13 +118,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="flex items-center gap-4">
             <button className="relative w-9 h-9 rounded-xl bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
               <Bell size={16} />
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-                3
-              </span>
+              {alertCount > 0 && (
+                <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full text-[10px] font-bold text-primary-foreground flex items-center justify-center">
+                  {alertCount}
+                </span>
+              )}
             </button>
             <div className="text-right">
-              <p className="text-sm font-medium text-foreground">March 28, 2026</p>
-              <p className="text-xs text-muted-foreground">Saturday</p>
+              <p className="text-sm font-medium text-foreground">
+                {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                {new Date().toLocaleDateString("en-US", { weekday: "long" })}
+              </p>
             </div>
           </div>
         </header>

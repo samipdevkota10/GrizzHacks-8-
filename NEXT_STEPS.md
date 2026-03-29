@@ -78,8 +78,9 @@ Free tier: 60 req/min, 1500 req/day -- more than enough for demos.
    ```
    ELEVENLABS_PHONE_NUMBER_ID=the-phone-number-id
    USER_PHONE_NUMBER=+1XXXXXXXXXX
-   FRAUD_AMOUNT_THRESHOLD=200.0
-   ```
+FRAUD_AMOUNT_THRESHOLD=200.0
+FRAUD_OUTBOUND_USE_FIRST_MESSAGE=true
+```
 
 **To test the fraud call:**
 ```bash
@@ -88,6 +89,10 @@ curl -X POST http://localhost:8000/api/transactions/incoming \
   -d '{"user_id": "YOUR_USER_ID", "amount": -450.00, "merchant_name": "Louis Vuitton", "category": "shopping"}'
 ```
 Vera will call the `USER_PHONE_NUMBER`, describe the suspicious transaction, and ask to confirm or deny.
+
+**ElevenLabs Security (required for outbound):** In **Vera** > **Security** > **Overrides**, turn **ON** **System prompt** (fraud-specific behavior) and **First message** (so the first spoken sentence is the charge verification, not the agent’s generic intro). If **First message** override is off, set `FRAUD_OUTBOUND_USE_FIRST_MESSAGE=false` in `.env` — you may still hear the dashboard’s default opener first until you shorten or clear **Agent** > **First message** in the ElevenLabs UI.
+
+**How the call stays aligned with real events:** The backend (1) sends a strict system prompt override with the exact amount, merchant, and reason from MongoDB, (2) passes **dynamic variables** (`fraud_merchant`, `fraud_amount_usd`, `fraud_reason`, etc.) you can reference in the agent as `{{fraud_merchant}}`, (3) runs **Gemini** on structured facts only to generate a short grounded script (opening line + yes/no replies). If Gemini is missing, a deterministic template is used. Full financial context is minimized so Vera does not drift into generic budgeting questions.
 
 ### 1.5 Stripe Setup (OPTIONAL -- for real card operations)
 
@@ -345,6 +350,7 @@ ELEVENLABS_VERA_VOICE_ID=your-voice-id
 ELEVENLABS_PHONE_NUMBER_ID=your-phone-number-id
 USER_PHONE_NUMBER=+1XXXXXXXXXX
 FRAUD_AMOUNT_THRESHOLD=200.0
+FRAUD_OUTBOUND_USE_FIRST_MESSAGE=true
 
 # === STRIPE (optional, mock fallback) ===
 STRIPE_SECRET_KEY=sk_test_...

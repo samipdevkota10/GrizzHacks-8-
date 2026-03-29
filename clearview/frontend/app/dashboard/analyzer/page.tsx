@@ -1,48 +1,45 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
-import { Camera, Upload, Clock, DollarSign, AlertTriangle, CheckCircle2, X } from "lucide-react";
-import { USER, MONTHLY } from "@/lib/mock-data";
-
-type AnalysisResult = {
-  product: string;
-  estimatedPrice: number;
-  canAfford: boolean;
-  hoursOfWork: number;
-  monthlyBudgetImpact: number;
-  recommendation: string;
-  breakdown: { label: string; value: string }[];
-};
-
-const MOCK_ANALYSES: Record<string, AnalysisResult> = {
-  default: {
-    product: "Sony WH-1000XM5 Headphones",
-    estimatedPrice: 349.99,
-    canAfford: true,
-    hoursOfWork: 11.4,
-    monthlyBudgetImpact: 7.8,
-    recommendation:
-      "You can afford this purchase. It would cost approximately 11.4 hours of your after-tax work time. This falls within your discretionary spending budget, but consider waiting for a sale if it's not urgent.",
-    breakdown: [
-      { label: "Your hourly rate (after tax)", value: `$${USER.netHourlyRate.toFixed(2)}/hr` },
-      { label: "Hours of work needed", value: "11.4 hours" },
-      { label: "Days of work needed", value: "1.4 days" },
-      { label: "% of monthly income", value: "5.1%" },
-      { label: "Remaining budget after", value: `$${(MONTHLY.budgetTotal - MONTHLY.budgetUsed - 349.99).toFixed(2)}` },
-      { label: "Emergency fund impact", value: "None" },
-    ],
-  },
-};
+import { Camera, Upload, Clock, AlertTriangle, CheckCircle2, X } from "lucide-react";
+import {
+  getUserId,
+  fetchDashboard,
+  purchaseCheck,
+  type PurchaseCheckResponse,
+} from "@/lib/api";
 
 export default function PurchaseAnalyzer() {
   const [image, setImage] = useState<string | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
-  const [result, setResult] = useState<AnalysisResult | null>(null);
+  const [result, setResult] = useState<PurchaseCheckResponse | null>(null);
+
+  const [hourlyRate, setHourlyRate] = useState(0);
+  const [budgetRemaining, setBudgetRemaining] = useState(0);
+  const [monthlySavings, setMonthlySavings] = useState(0);
+
+  useEffect(() => {
+    const uid = getUserId();
+    if (!uid) return;
+    fetchDashboard(uid).then((d) => {
+      const profile = d.financial_profile as {
+        monthly_income?: number;
+        monthly_budget?: number;
+      } | null;
+      const income = profile?.monthly_income || 0;
+      const rate = income > 0 ? income / 160 : 0;
+      setHourlyRate(Math.round(rate * 100) / 100);
+      setBudgetRemaining(d.monthly_summary.remaining);
+      setMonthlySavings(d.monthly_summary.income - d.monthly_summary.spent);
+    }).catch(() => {});
+  }, []);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
+    setImageFile(file);
     const reader = new FileReader();
     reader.onload = () => setImage(reader.result as string);
     reader.readAsDataURL(file);
@@ -55,16 +52,29 @@ export default function PurchaseAnalyzer() {
   });
 
   const analyzeImage = async () => {
+    if (!imageFile) return;
+    const uid = getUserId();
+    if (!uid) return;
+
     setAnalyzing(true);
-    await new Promise((r) => setTimeout(r, 2500));
-    setResult(MOCK_ANALYSES.default);
-    setAnalyzing(false);
+    try {
+      const res = await purchaseCheck(uid, imageFile);
+      setResult(res);
+    } catch {
+      alert("Could not analyze the image. Make sure the backend is running.");
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const reset = () => {
     setImage(null);
+    setImageFile(null);
     setResult(null);
   };
+
+  const hoursOfWork = result && hourlyRate > 0 ? Math.round((result.price / hourlyRate) * 10) / 10 : null;
+  const canAfford = result?.verdict === "yes";
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -76,26 +86,22 @@ export default function PurchaseAnalyzer() {
         </p>
       </div>
 
-      {/* Stats bar */}
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-2xl bg-card border border-border p-4 text-center">
-          <p className="text-xs text-muted-foreground mb-1">Your Hourly Rate (After Tax)</p>
-          <p className="text-xl font-bold text-foreground tabular-nums">${USER.netHourlyRate.toFixed(2)}</p>
+          <p className="text-xs text-muted-foreground mb-1">Your Hourly Rate (est.)</p>
+          <p className="text-xl font-bold text-foreground tabular-nums">${hourlyRate.toFixed(2)}</p>
         </div>
         <div className="rounded-2xl bg-card border border-border p-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Remaining Monthly Budget</p>
-          <p className="text-xl font-bold text-foreground tabular-nums">
-            ${(MONTHLY.budgetTotal - MONTHLY.budgetUsed).toLocaleString()}
-          </p>
+          <p className="text-xl font-bold text-foreground tabular-nums">${budgetRemaining.toLocaleString()}</p>
         </div>
         <div className="rounded-2xl bg-card border border-border p-4 text-center">
           <p className="text-xs text-muted-foreground mb-1">Monthly Savings</p>
-          <p className="text-xl font-bold text-green-600 tabular-nums">${MONTHLY.savings.toLocaleString()}</p>
+          <p className="text-xl font-bold text-green-600 tabular-nums">${monthlySavings.toLocaleString()}</p>
         </div>
       </div>
 
       {!result ? (
-        /* Upload Area */
         <div className="rounded-2xl bg-card border border-border p-8">
           <div
             {...getRootProps()}
@@ -151,7 +157,6 @@ export default function PurchaseAnalyzer() {
           )}
         </div>
       ) : (
-        /* Results */
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground">Analysis Results</h2>
@@ -160,7 +165,6 @@ export default function PurchaseAnalyzer() {
             </button>
           </div>
 
-          {/* Preview + Verdict */}
           <div className="grid grid-cols-3 gap-4">
             <div className="rounded-2xl bg-card border border-border p-4">
               {image && <img src={image} alt="Analyzed" className="rounded-xl w-full object-contain" />}
@@ -168,9 +172,9 @@ export default function PurchaseAnalyzer() {
             <div className="col-span-2 rounded-2xl bg-card border border-border p-6">
               <div className="flex items-start gap-4 mb-6">
                 <div className={`w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 ${
-                  result.canAfford ? "bg-green-100" : "bg-red-100"
+                  canAfford ? "bg-green-100" : "bg-red-100"
                 }`}>
-                  {result.canAfford ? (
+                  {canAfford ? (
                     <CheckCircle2 size={24} className="text-green-600" />
                   ) : (
                     <AlertTriangle size={24} className="text-red-500" />
@@ -179,43 +183,33 @@ export default function PurchaseAnalyzer() {
                 <div>
                   <h3 className="text-lg font-bold text-foreground">{result.product}</h3>
                   <p className="text-2xl font-bold text-foreground tabular-nums mt-1">
-                    ${result.estimatedPrice.toFixed(2)}
+                    {result.currency === "USD" ? "$" : result.currency}{result.price.toFixed(2)}
                   </p>
                   <span className={`inline-block mt-2 text-xs font-medium px-3 py-1 rounded-full ${
-                    result.canAfford
+                    canAfford
                       ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-600"
+                      : result.verdict === "careful"
+                        ? "bg-yellow-100 text-yellow-700"
+                        : "bg-red-100 text-red-600"
                   }`}>
-                    {result.canAfford ? "✓ You can afford this" : "✗ Not recommended right now"}
+                    {canAfford ? "You can afford this" : result.verdict === "careful" ? "Think twice" : "Not recommended right now"}
                   </span>
                 </div>
               </div>
 
-              {/* Hours visualization */}
-              <div className="flex items-center gap-4 p-4 rounded-xl bg-warm mb-4">
-                <Clock size={20} className="text-primary" />
-                <div>
-                  <p className="text-sm text-muted-foreground">This purchase costs you</p>
-                  <p className="text-2xl font-bold text-foreground">
-                    {result.hoursOfWork} hours <span className="text-sm font-normal text-muted-foreground">of work</span>
-                  </p>
+              {hoursOfWork !== null && (
+                <div className="flex items-center gap-4 p-4 rounded-xl bg-warm mb-4">
+                  <Clock size={20} className="text-primary" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">This purchase costs you</p>
+                    <p className="text-2xl font-bold text-foreground">
+                      {hoursOfWork} hours <span className="text-sm font-normal text-muted-foreground">of work</span>
+                    </p>
+                  </div>
                 </div>
-              </div>
+              )}
 
-              <p className="text-sm text-muted-foreground leading-relaxed">{result.recommendation}</p>
-            </div>
-          </div>
-
-          {/* Detailed Breakdown */}
-          <div className="rounded-2xl bg-card border border-border p-5">
-            <h3 className="text-sm font-bold text-foreground mb-4">Financial Breakdown</h3>
-            <div className="grid grid-cols-3 gap-4">
-              {result.breakdown.map((item) => (
-                <div key={item.label} className="p-3 rounded-xl bg-background">
-                  <p className="text-xs text-muted-foreground mb-1">{item.label}</p>
-                  <p className="text-sm font-bold text-foreground">{item.value}</p>
-                </div>
-              ))}
+              <p className="text-sm text-muted-foreground leading-relaxed">{result.reasoning}</p>
             </div>
           </div>
         </div>
