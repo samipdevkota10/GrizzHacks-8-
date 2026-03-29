@@ -4,6 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { Eye, EyeOff, ArrowUpRight } from "lucide-react";
 import Link from "next/link";
+import { login, signup } from "@/lib/api";
 
 type AuthMode = "login" | "signup";
 
@@ -11,12 +12,29 @@ export default function AuthPage() {
   const [mode, setMode] = useState<AuthMode>("login");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError("");
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    window.location.href = mode === "signup" ? "/onboarding" : "/dashboard";
+    try {
+      if (mode === "signup") {
+        await signup(name, email, password);
+        window.location.href = "/onboarding";
+      } else {
+        await login(email, password);
+        window.location.href = "/dashboard";
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -82,10 +100,18 @@ export default function AuthPage() {
               onSubmit={handleSubmit}
               className="space-y-4"
             >
+              {error && (
+                <div className="rounded-xl bg-red-500/10 border border-red-500/20 px-4 py-3 text-sm text-red-400">
+                  {error}
+                </div>
+              )}
+
               {mode === "signup" && (
                 <input
                   type="text"
                   placeholder="Full name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                   className="w-full rounded-xl bg-background border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                   required
                 />
@@ -93,6 +119,8 @@ export default function AuthPage() {
               <input
                 type="email"
                 placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full rounded-xl bg-background border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                 required
               />
@@ -100,6 +128,8 @@ export default function AuthPage() {
                 <input
                   type={showPassword ? "text" : "password"}
                   placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-xl bg-background border border-border px-4 py-3 pr-10 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
                   required
                 />

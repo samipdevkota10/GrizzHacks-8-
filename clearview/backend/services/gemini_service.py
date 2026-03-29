@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
 
-SYSTEM_PROMPT_TEMPLATE = '''You are Vera, {user_name}'s personal financial advisor inside the Clearview app.
+SYSTEM_PROMPT_TEMPLATE = '''You are Vera, {user_name}'s personal financial advisor inside the VeraFund app.
 
 {context_text}
 
@@ -141,7 +141,7 @@ FACTS (use ONLY these; do not invent merchants, amounts, or reasons):
 
 Return ONLY valid JSON with this shape (no markdown):
 {{
-  "opening_line": "One sentence greeting + name + Clearview + the exact dollar amount and merchant from facts.",
+  "opening_line": "One sentence greeting + name + VeraFund + the exact dollar amount and merchant from facts.",
   "verification_question": "One short question asking if they authorized THIS charge only.",
   "yes_ack": "One sentence if they confirm (approve this charge, thanks, goodbye).",
   "no_ack": "One sentence if they deny (freeze card, flag for review)."

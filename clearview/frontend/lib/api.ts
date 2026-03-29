@@ -1,15 +1,42 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
+// ── Auth token helpers ───────────────────────────────────────
+export function getToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("verafund_token");
+}
+
+export function setToken(token: string): void {
+  localStorage.setItem("verafund_token", token);
+}
+
+export function clearAuth(): void {
+  localStorage.removeItem("verafund_token");
+  localStorage.removeItem("verafund_user_id");
+}
+
 export function getUserId(): string {
   if (typeof window !== "undefined") {
-    const stored = localStorage.getItem("clearview_user_id");
+    const stored = localStorage.getItem("verafund_user_id");
     if (stored) return stored;
   }
-  return process.env.NEXT_PUBLIC_CLEARVIEW_USER_ID || "";
+  return process.env.NEXT_PUBLIC_VERAFUND_USER_ID || "";
+}
+
+export function setUserId(id: string): void {
+  localStorage.setItem("verafund_user_id", id);
+}
+
+function authHeaders(): Record<string, string> {
+  const token = getToken();
+  if (token) return { Authorization: `Bearer ${token}` };
+  return {};
 }
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${API_URL}${path}`);
+  const res = await fetch(`${API_URL}${path}`, {
+    headers: { ...authHeaders() },
+  });
   if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
   return res.json();
 }
@@ -17,7 +44,7 @@ async function get<T>(path: string): Promise<T> {
 async function post<T>(path: string, body?: unknown): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...authHeaders() },
     body: body ? JSON.stringify(body) : undefined,
   });
   if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
@@ -27,10 +54,54 @@ async function post<T>(path: string, body?: unknown): Promise<T> {
 async function postForm<T>(path: string, formData: FormData): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     method: "POST",
+    headers: { ...authHeaders() },
     body: formData,
   });
   if (!res.ok) throw new Error(`API ${res.status}: ${path}`);
   return res.json();
+}
+
+// ── Auth API ─────────────────────────────────────────────────
+export interface AuthResponse {
+  token: string;
+  user_id: string;
+  user: Record<string, unknown>;
+}
+
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  const res = await fetch(`${API_URL}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Login failed (${res.status})`);
+  }
+  const data: AuthResponse = await res.json();
+  setToken(data.token);
+  setUserId(data.user_id);
+  return data;
+}
+
+export async function signup(
+  name: string,
+  email: string,
+  password: string,
+): Promise<AuthResponse> {
+  const res = await fetch(`${API_URL}/api/auth/signup`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name, email, password }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.detail || `Signup failed (${res.status})`);
+  }
+  const data: AuthResponse = await res.json();
+  setToken(data.token);
+  setUserId(data.user_id);
+  return data;
 }
 
 // ── Dashboard ────────────────────────────────────────────────

@@ -1,4 +1,4 @@
-# Clearview — Personal Finance OS
+# VeraFund — Personal Finance OS
 
 ## Product Requirements Document (Merged)
 
@@ -17,13 +17,13 @@ Consumers lose hundreds of dollars annually to forgotten subscriptions, stealth 
 - **AI advice grounded in their actual dollars** — not generic tips
 - **A single interface** that unifies dashboard, advisor, and card management
 
-Clearview closes all three gaps.
+VeraFund closes all three gaps.
 
 ---
 
 ## 2. Product Vision
 
-Clearview is the first Personal Finance OS that knows you completely — every dollar, every subscription, every financial decision — and gives you an AI advisor, a watchful dashboard, and direct control over your payment rails, all wrapped in the most beautiful financial interface ever built for a normal person.
+VeraFund is the first Personal Finance OS that knows you completely — every dollar, every subscription, every financial decision — and gives you an AI advisor, a watchful dashboard, and direct control over your payment rails, all wrapped in the most beautiful financial interface ever built for a normal person.
 
 **Tagline:** "Every dollar, crystal clear."
 
@@ -579,7 +579,7 @@ Mint SPL token on devnet per transaction. "On-chain Receipt" badge on transactio
 ## 15. Demo Script (60 Seconds)
 
 **OPEN on dashboard:**
-"This is Clearview — your personal finance OS. In one screen: $22,900 net worth, $340 discretionary budget left this month, and 8 subscriptions costing me $178 a month I probably don't all need."
+"This is VeraFund — your personal finance OS. In one screen: $22,900 net worth, $340 discretionary budget left this month, and 8 subscriptions costing me $178 a month I probably don't all need."
 
 **[Click AI chat panel]**
 "Meet Vera, your AI financial advisor — but unlike every other AI, Vera knows every dollar I've spent."
@@ -598,13 +598,13 @@ Mint SPL token on devnet per transaction. "On-chain Receipt" badge on transactio
 "Done. They cannot charge me again. No phone call. No cancellation page. The money physically cannot leave my account."
 
 **[Show anomaly alert]**
-"And look — Netflix just tried to charge me $17.99 instead of $15.99. Clearview caught it before the money left. I can approve it, update my limit, or decline and freeze the card. My money, my rules."
+"And look — Netflix just tried to charge me $17.99 instead of $15.99. VeraFund caught it before the money left. I can approve it, update my limit, or decline and freeze the card. My money, my rules."
 
 **[Click Call Vera]**
 "And if I want to go deeper — I call her."
 [Speak: "Vera, am I being financially responsible?"]
 [Let her answer]
-"This is Clearview."
+"This is VeraFund."
 
 ---
 

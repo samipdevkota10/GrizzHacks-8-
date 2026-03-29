@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     FRAUD_OUTBOUND_USE_FIRST_MESSAGE: bool = True
     BACKEND_PUBLIC_URL: str = ""
 
+    JWT_SECRET_KEY: str = "change-me-in-production"
+    JWT_ALGORITHM: str = "HS256"
+    JWT_EXPIRE_HOURS: int = 24
+
     model_config = SettingsConfigDict(
         env_file=_BACKEND_DIR / ".env",
         env_file_encoding="utf-8",

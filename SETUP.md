@@ -1,4 +1,4 @@
-# Clearview MVP — External Setup & Runbook
+# VeraFund MVP — External Setup & Runbook
 
 This guide covers accounts, API keys, local development, and hosting so you can get the POC/MVP running end-to-end. Pair with [PRD.md](PRD.md) and your merged master build prompt.
 

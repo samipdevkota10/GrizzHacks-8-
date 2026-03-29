@@ -32,7 +32,7 @@ The frontend and backend are **completely disconnected**. The frontend renders b
 |-------|--------------|-----------|
 | Frontend API port | `http://localhost:8001` (.env.local) | `http://localhost:8000` (backend default) |
 | Backend .env MONGODB_URI | `mongodb://localhost:27017/clearview_db` | Atlas URI or local Docker MongoDB |
-| Backend brand references | "Clearview" in seed data, system prompts | Should be "Vera Fund" |
+| Backend brand references | "VeraFund" in seed data, system prompts | Should be "Vera Fund" |
 | User ID in .env.local | `69c84530e555b3648a0b31e7` | Must match actual seeded user ObjectId |
 
 ---
@@ -84,7 +84,7 @@ These are manual steps that require your machine/accounts:
   ```
 - [ ] **Verify backend .env** — confirm `MONGODB_URI=mongodb://localhost:27017/clearview_db` and `GEMINI_API_KEY` is set
 - [ ] **Run seed** — `cd clearview/backend; python seed_data.py` — note the printed user ID
-- [ ] **Update frontend .env.local** — put the real user ID in `NEXT_PUBLIC_CLEARVIEW_USER_ID`
+- [ ] **Update frontend .env.local** — put the real user ID in `NEXT_PUBLIC_VERAFUND_USER_ID`
 - [ ] **Start backend** — `uvicorn main:app --reload --port 8000`
 - [ ] **Start frontend** — `cd clearview/frontend; npm run dev`
 - [ ] **Verify** — `http://localhost:8000/api/health` returns `{"status":"ok"}`
@@ -113,8 +113,8 @@ This is the critical work. Create the API client and hooks that connect the fron
 ### Phase 2: Update Backend for Vera Fund (AI does this — ~30 min)
 
 1. Update `seed_data.py` — Change "Alex Chen" → "Alex Morgan", email to `@verafund.app`
-2. Update `services/gemini_service.py` — Change system prompt from "Clearview" to "Vera Fund"
-3. Update `services/financial_context.py` — Change any "Clearview" references
+2. Update `services/gemini_service.py` — Change system prompt from "VeraFund" to "Vera Fund"
+3. Update `services/financial_context.py` — Change any "VeraFund" references
 4. Re-run `seed_data.py` after changes
 
 ### Phase 3: Anomaly Alert on Dashboard (AI does this — ~30 min)

@@ -39,6 +39,7 @@ class User(BaseModel):
         "creep_detection_threshold": 5.0,
         "notification_budget_threshold": 0.8,
     }
+    password_hash: str | None = None
     onboarding_complete: bool = False
     solana_wallet_pubkey: str | None = None
     phone_number: str | None = None

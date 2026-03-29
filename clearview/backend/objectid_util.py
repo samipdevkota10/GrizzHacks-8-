@@ -12,7 +12,7 @@ def parse_user_object_id(user_id: str) -> ObjectId:
             detail=(
                 "Invalid user id: must be a 24-character hex MongoDB ObjectId. "
                 "Run `python seed_data.py`, copy USER ID, then in the browser console run "
-                '`localStorage.setItem("clearview_user_id", "<USER_ID>")` and refresh — '
-                "or set NEXT_PUBLIC_CLEARVIEW_USER_ID in frontend .env.local."
+                '`localStorage.setItem("verafund_user_id", "<USER_ID>")` and refresh — '
+                "or set NEXT_PUBLIC_VERAFUND_USER_ID in frontend .env.local."
             ),
         ) from e

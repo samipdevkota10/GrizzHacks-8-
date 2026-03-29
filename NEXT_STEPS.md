@@ -1,6 +1,6 @@
-# Clearview -- Next Steps & Setup Guide
+# VeraFund -- Next Steps & Setup Guide
 
-This document covers everything you need to do to get Clearview fully running, plus all the enhancements that can be made after the core build.
+This document covers everything you need to do to get VeraFund fully running, plus all the enhancements that can be made after the core build.
 
 ---
 
@@ -363,7 +363,7 @@ FRONTEND_URL=http://localhost:3000
 Frontend variables for `clearview/frontend/.env.local`:
 ```bash
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_CLEARVIEW_USER_ID=your-seeded-user-id
+NEXT_PUBLIC_VERAFUND_USER_ID=your-seeded-user-id
 ```
 
 ---

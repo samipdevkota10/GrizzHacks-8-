@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 # Prompt override must dominate the agent's default "financial advisor" persona.
 VERA_FRAUD_PROMPT = """=== SECURITY OUTBOUND CALL — OVERRIDES ALL OTHER INSTRUCTIONS ===
 
-You are Vera from Clearview. This is NOT a general financial planning session.
+You are Vera from VeraFund. This is NOT a general financial planning session.
 This is a mandatory fraud-verification phone call about ONE charge only.
 
 CRITICAL RULES (violate any of these and you fail the task):
@@ -43,7 +43,7 @@ MINIMAL ACCOUNT CONTEXT (only if they ask "what's my balance" after the fraud to
 {mini_context}
 
 CONVERSATION FLOW:
-1. Open using the grounded script or repeat: amount + merchant + Clearview + why it was flagged (one sentence).
+1. Open using the grounded script or repeat: amount + merchant + VeraFund + why it was flagged (one sentence).
 2. Ask clearly: "Did you authorize this {amount_str} dollar charge at {merchant_name}?"
 3. YES → IMMEDIATELY call the "approve_transaction" tool, then confirm to the user the charge is approved. Say goodbye.
 4. NO → IMMEDIATELY call the "deny_and_freeze_card" tool, then tell the user their card has been frozen and the charge is flagged for review. Reassure them their account is secured. Say goodbye.
@@ -175,7 +175,7 @@ async def initiate_fraud_call(
     else:
         gemini_script_block = (
             "AGENTIC SCRIPT (no LLM helper — use exactly):\n"
-            f"- Opening: Hi {user_name}, this is Vera from Clearview. "
+            f"- Opening: Hi {user_name}, this is Vera from VeraFund. "
             f"We flagged a charge of ${amount_str} at {merchant_name}. "
             f"Reason: {reason}\n"
             f"- Question: Did you authorize this charge?\n"
@@ -208,7 +208,7 @@ async def initiate_fraud_call(
         opening_for_phone = grounded["opening_line"].strip()
     else:
         opening_for_phone = (
-            f"Hi {user_name}, this is Vera from Clearview. "
+            f"Hi {user_name}, this is Vera from VeraFund. "
             f"We flagged a charge of {amount_str} dollars at {merchant_name}. "
             f"Did you authorize this purchase?"
         )

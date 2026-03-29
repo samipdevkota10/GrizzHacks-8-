@@ -15,7 +15,7 @@ import {
   Bell,
   Search,
 } from "lucide-react";
-import { getUserId, fetchDashboard } from "@/lib/api";
+import { getUserId, getToken, clearAuth, fetchDashboard } from "@/lib/api";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -34,7 +34,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     const uid = getUserId();
-    if (!uid) return;
+    const token = getToken();
+    if (!uid || !token) {
+      window.location.href = "/auth";
+      return;
+    }
     fetchDashboard(uid).then((d) => {
       const u = d.user as { name?: string; email?: string; avatar_url?: string | null };
       setUser({
@@ -45,6 +49,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       setAlertCount(d.pending_alerts.length + d.notifications.length);
     }).catch(() => {});
   }, []);
+
+  const handleSignOut = () => {
+    clearAuth();
+    window.location.href = "/auth";
+  };
 
   return (
     <div className="flex h-screen bg-background overflow-hidden">
@@ -93,13 +102,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
             </div>
           </div>
-          <Link
-            href="/"
-            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all"
+          <button
+            onClick={handleSignOut}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl text-sm text-muted-foreground hover:text-foreground hover:bg-muted transition-all w-full"
           >
             <LogOut size={16} />
             Sign out
-          </Link>
+          </button>
         </div>
       </aside>
 

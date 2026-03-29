@@ -23,13 +23,13 @@ This starts a MongoDB 7 container with no authentication, exposed on `localhost:
 > docker run -d \
 >   --name clearview-mongo \
 >   -p 27017:27017 \
->   -e MONGO_INITDB_ROOT_USERNAME=clearview \
->   -e MONGO_INITDB_ROOT_PASSWORD=clearview_dev_password \
+>   -e MONGO_INITDB_ROOT_USERNAME=verafund \
+>   -e MONGO_INITDB_ROOT_PASSWORD=verafund_dev_password \
 >   mongo:7
 > ```
 >
 > If using auth, your URI becomes:
-> `mongodb://clearview:clearview_dev_password@localhost:27017/clearview_db?authSource=admin`
+> `mongodb://verafund:verafund_dev_password@localhost:27017/clearview_db?authSource=admin`
 
 ## 2. Configure the backend
 
@@ -48,7 +48,7 @@ Create `clearview/frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:8000
-NEXT_PUBLIC_CLEARVIEW_USER_ID=<user-id-from-seed-output>
+NEXT_PUBLIC_VERAFUND_USER_ID=<user-id-from-seed-output>
 ```
 
 ## 4. Seed the database
@@ -59,7 +59,7 @@ source venv/bin/activate   # or however you activate your virtualenv
 python seed_data.py
 ```
 
-The script prints a `USER ID` — copy it into `NEXT_PUBLIC_CLEARVIEW_USER_ID` in the frontend `.env.local` above, then restart the Next.js dev server.
+The script prints a `USER ID` — copy it into `NEXT_PUBLIC_VERAFUND_USER_ID` in the frontend `.env.local` above, then restart the Next.js dev server.
 
 ## 5. Verify connectivity
 

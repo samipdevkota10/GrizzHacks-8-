@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 
 from database import get_database
+from services.auth_service import hash_password
 
 random.seed(42)
 
@@ -39,8 +40,9 @@ async def seed() -> None:
     await db.users.insert_one(
         {
             "_id": user_id,
-            "email": "alex@clearviewdemo.com",
+            "email": "alex@verafunddemo.com",
             "name": "Alex Chen",
+            "password_hash": hash_password("demo123"),
             "avatar_url": None,
             "created_at": now,
             "updated_at": None,
@@ -505,7 +507,7 @@ async def seed() -> None:
 
     print()
     print("=" * 60)
-    print("CLEARVIEW DATABASE SEEDED SUCCESSFULLY")
+    print("VERAFUND DATABASE SEEDED SUCCESSFULLY")
     print("=" * 60)
     print(f"  Users:         {user_count}")
     print(f"  Accounts:      {account_count}")
@@ -516,8 +518,9 @@ async def seed() -> None:
     print()
     print(f"  USER ID: {user_id}")
     print()
-    print("  Copy the USER ID above and set it in your browser:")
-    print(f'  localStorage.setItem("clearview_user_id", "{user_id}");')
+    print("  Demo login credentials:")
+    print("    Email:    alex@verafunddemo.com")
+    print("    Password: demo123")
     print("=" * 60)
 
 
