@@ -48,13 +48,26 @@ const CATEGORY_COLORS: Record<string, string> = {
   food: "#F97316",
   transport: "#FBBF24",
   entertainment: "#7C3AED",
-  shopping: "#DC2626",
+  shopping: "#EC4899",
   health: "#16A34A",
-  utilities: "#E53E0B",
-  subscription: "#A16207",
-  subscriptions: "#A16207",
+  utilities: "#0EA5E9",
+  subscription: "#8B5CF6",
+  subscriptions: "#8B5CF6",
   income: "#16A34A",
   other: "#94A3B8",
+};
+
+const CATEGORY_EMOJI: Record<string, string> = {
+  food: "🍔",
+  transport: "⛽",
+  entertainment: "🎮",
+  shopping: "🛍️",
+  health: "🏥",
+  utilities: "💡",
+  subscription: "📱",
+  subscriptions: "📱",
+  income: "💰",
+  other: "📦",
 };
 
 function StatCard({
@@ -282,7 +295,7 @@ export default function DashboardOverview() {
                 {spendingByCategory.slice(0, 5).map((cat) => (
                   <div key={cat.name} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: cat.color }} />
+                      <span className="text-xs">{CATEGORY_EMOJI[cat.name.toLowerCase()] || "📦"}</span>
                       <span className="text-muted-foreground">{cat.name}</span>
                     </div>
                     <span className="font-medium text-foreground tabular-nums">${cat.amount.toLocaleString()}</span>
@@ -322,10 +335,14 @@ export default function DashboardOverview() {
             {budgetCategories.map((cat) => {
               const pct = cat.budget > 0 ? Math.min((cat.spent / cat.budget) * 100, 100) : 0;
               const over = cat.spent > cat.budget;
+              const emoji = CATEGORY_EMOJI[cat.name.toLowerCase()] || "📦";
               return (
                 <div key={cat.name}>
                   <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-muted-foreground">{cat.name}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs">{emoji}</span>
+                      <span className="text-xs text-muted-foreground">{cat.name}</span>
+                    </div>
                     <span className={`text-xs font-medium tabular-nums ${over ? "text-red-500" : "text-foreground"}`}>
                       ${Math.round(cat.spent)} / ${cat.budget}
                     </span>
@@ -421,8 +438,6 @@ export default function DashboardOverview() {
       )}
 
       <div className="grid grid-cols-3 gap-4">
-        <CardOptimizerWidget />
-
         <div className="rounded-2xl bg-card border border-border p-5">
           <h3 className="text-sm font-bold text-foreground mb-4">Financial Pulse</h3>
           <div className="space-y-4">
@@ -433,14 +448,14 @@ export default function DashboardOverview() {
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Top Category</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: CATEGORY_COLORS[qs.top_category.toLowerCase()] || "#94A3B8" }} />
+                <span className="text-xs">{CATEGORY_EMOJI[qs.top_category.toLowerCase()] || "📦"}</span>
                 <p className="text-sm font-medium text-foreground">{qs.top_category.charAt(0).toUpperCase() + qs.top_category.slice(1)}</p>
                 <span className="text-xs text-muted-foreground tabular-nums ml-auto">${qs.top_category_amount.toLocaleString()}</span>
               </div>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Subscriptions</p>
-              <p className="text-sm font-medium text-foreground">{data.subscriptions.length} active</p>
+              <p className="text-sm font-medium text-foreground">{data.subscriptions.length} active · ${data.subscriptions.reduce((s, sub) => s + (sub.amount || 0), 0).toFixed(2)}/mo</p>
             </div>
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Days to Paycheck</p>
@@ -464,7 +479,8 @@ export default function DashboardOverview() {
           {upcoming_bills.length > 0 ? (
             <div className="grid grid-cols-2 gap-x-4">
               {upcoming_bills.slice(0, 10).map((bill, i) => (
-                <div key={`${bill.name}-${i}`} className="flex items-center justify-between py-2 px-2 rounded-lg hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0">
+                <div key={`${bill.name}-${i}`} className="flex items-center gap-3 py-2 px-2 rounded-lg hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0">
+                  <MerchantLogo domain={bill.logo_url || null} name={bill.name} size={24} />
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{bill.name}</p>
                     <p className="text-xs text-muted-foreground" suppressHydrationWarning>
@@ -487,6 +503,8 @@ export default function DashboardOverview() {
           )}
         </div>
       </div>
+
+      <CardOptimizerWidget />
     </div>
   );
 }

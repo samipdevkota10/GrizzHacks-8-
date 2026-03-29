@@ -105,15 +105,22 @@ export function CashFlowForecast() {
       </ResponsiveContainer>
 
       {events.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {events.slice(0, 4).map((e, i) => (
-            <span
-              key={i}
-              className="text-[10px] px-2 py-1 rounded-full bg-muted text-muted-foreground"
-            >
-              {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}: {e.event}
-            </span>
-          ))}
+        <div className="mt-3 flex flex-wrap gap-1.5">
+          {events.slice(0, 5).map((e, i) => {
+            const isIncome = e.event?.startsWith("Paycheck");
+            return (
+              <span
+                key={i}
+                className={`text-[10px] px-2 py-1 rounded-full border font-medium ${
+                  isIncome
+                    ? "bg-green-50 text-green-700 border-green-200/60 dark:bg-green-950/20 dark:text-green-400 dark:border-green-800/30"
+                    : "bg-muted text-muted-foreground border-border"
+                }`}
+              >
+                {new Date(e.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}: {e.event}
+              </span>
+            );
+          })}
         </div>
       )}
     </div>

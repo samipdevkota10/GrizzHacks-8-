@@ -8,19 +8,19 @@ const RISK_CONFIG = {
     icon: ShieldCheck,
     iconColor: "text-green-600",
     label: "All Clear",
-    labelStyle: "text-green-700 bg-green-50",
+    labelStyle: "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950/30",
   },
   watch: {
     icon: ShieldAlert,
     iconColor: "text-amber-600",
     label: "Watch",
-    labelStyle: "text-amber-700 bg-amber-50",
+    labelStyle: "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30",
   },
   critical: {
     icon: ShieldX,
     iconColor: "text-red-600",
     label: "At Risk",
-    labelStyle: "text-red-700 bg-red-50",
+    labelStyle: "text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-950/30",
   },
 } as const;
 

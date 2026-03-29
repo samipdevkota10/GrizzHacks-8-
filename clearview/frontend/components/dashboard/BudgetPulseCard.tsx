@@ -4,9 +4,9 @@ import { Gauge } from "lucide-react";
 import type { BudgetPulse } from "@/lib/api";
 
 const STATUS_COLORS = {
-  safe: { bar: "bg-green-500", label: "text-green-700 bg-green-50" },
-  warning: { bar: "bg-amber-500", label: "text-amber-700 bg-amber-50" },
-  critical: { bar: "bg-red-500", label: "text-red-700 bg-red-50" },
+  safe: { bar: "bg-green-500", label: "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950/30" },
+  warning: { bar: "bg-amber-500", label: "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30" },
+  critical: { bar: "bg-red-500", label: "text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-950/30" },
 } as const;
 
 export function BudgetPulseCard({
