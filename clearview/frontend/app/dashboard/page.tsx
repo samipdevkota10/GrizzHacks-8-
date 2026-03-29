@@ -120,20 +120,20 @@ function StatCard({
 function TxStatusBadge({ status, anomalyFlag }: { status?: string; anomalyFlag?: boolean }) {
   if (status === "denied")
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">
-        <ShieldOff size={10} /> Blocked
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-secondary text-foreground border border-border">
+        <ShieldOff size={10} className="opacity-60" /> Blocked
       </span>
     );
   if (status === "pending_review")
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400">
-        <ShieldAlert size={10} /> Pending
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-warm text-foreground border border-primary/20">
+        <ShieldAlert size={10} className="opacity-60" /> Pending
       </span>
     );
   if (anomalyFlag)
     return (
-      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
-        <ShieldAlert size={10} /> Flagged
+      <span className="inline-flex items-center gap-1 text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-warm text-foreground border border-primary/20">
+        <ShieldAlert size={10} className="opacity-60" /> Flagged
       </span>
     );
   return null;

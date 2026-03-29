@@ -34,7 +34,9 @@ for module_name in ["auth", "advisor", "cards", "alerts", "voice", "transactions
     try:
         mod = __import__(f"routers.{module_name}", fromlist=["router"])
         app.include_router(mod.router)
-    except (ImportError, AttributeError) as exc:
+        _logger.info("Registered router: %s", module_name)
+    except Exception as exc:
+        _logger.error("FAILED to register router %s: %s", module_name, exc, exc_info=True)
         print(f"Skipped router {module_name}: {exc}")
 
 
