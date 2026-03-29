@@ -4,8 +4,12 @@ from fastapi import APIRouter, HTTPException
 from database import get_database
 from objectid_util import parse_user_object_id
 from services.stripe_service import stripe_service
+from config import settings
+import stripe as stripe_lib
 
 router = APIRouter(prefix="/api/cards", tags=["cards"])
+
+COLOR_CYCLE = ["blue", "red", "green", "purple"]
 
 
 def serialize(doc):
@@ -18,13 +22,79 @@ def serialize(doc):
     return doc
 
 
+async def _sync_stripe_cards(db, uid: ObjectId) -> None:
+    """Pull all active cards from Stripe and upsert them into MongoDB."""
+    if not settings.STRIPE_SECRET_KEY or not settings.STRIPE_CARDHOLDER_ID:
+        return
+    try:
+        stripe_lib.api_key = settings.STRIPE_SECRET_KEY
+        result = stripe_lib.issuing.Card.list(
+            cardholder=settings.STRIPE_CARDHOLDER_ID,
+            limit=100,
+        )
+        for i, sc in enumerate(result.auto_paging_iter()):
+            if sc.status == "canceled":
+                # Mark destroyed in our DB if it was ever there
+                await db.virtual_cards.update_one(
+                    {"stripe_card_id": sc.id},
+                    {"$set": {"status": "destroyed"}},
+                )
+                continue
+
+            limit_cents = 0
+            if sc.spending_controls and sc.spending_controls.spending_limits:
+                limit_cents = sc.spending_controls.spending_limits[0].amount
+
+            db_status = "paused" if sc.status == "inactive" else "active"
+
+            nickname = sc.cardholder.name if sc.cardholder else f"Card {sc.last4}"
+
+            await db.virtual_cards.update_one(
+                {"stripe_card_id": sc.id},
+                {
+                    "$setOnInsert": {
+                        "user_id": uid,
+                        "stripe_card_id": sc.id,
+                        "nickname": nickname,
+                        "merchant_name": nickname,
+                        "merchant_logo_url": None,
+                        "merchant_category": sc.spending_controls.allowed_categories[0]
+                            if sc.spending_controls and sc.spending_controls.allowed_categories
+                            else "subscription",
+                        "spent_this_month": 0.0,
+                        "last_known_amount": None,
+                        "funding_account_id": None,
+                        "color_scheme": COLOR_CYCLE[i % len(COLOR_CYCLE)],
+                        "created_at": datetime.utcfromtimestamp(sc.created),
+                        "total_charged_lifetime": 0.0,
+                        "charge_count": 0,
+                    },
+                    "$set": {
+                        "last4": sc.last4,
+                        "exp_month": sc.exp_month,
+                        "exp_year": sc.exp_year,
+                        "status": db_status,
+                        "spending_limit_monthly": limit_cents / 100,
+                        "paused_at": datetime.utcnow() if db_status == "paused" else None,
+                        "destroyed_at": None,
+                    },
+                },
+                upsert=True,
+            )
+    except Exception as e:
+        # Don't crash the page if Stripe is unreachable
+        print(f"[cards] Stripe sync error: {e}")
+
+
 @router.get("/{user_id}")
 async def get_cards(user_id: str):
     db = get_database()
     uid = parse_user_object_id(user_id)
+    await _sync_stripe_cards(db, uid)
     cards = await db.virtual_cards.find({
         "user_id": uid,
         "stripe_card_id": {"$exists": True, "$nin": [None, ""]},
+        "status": {"$ne": "destroyed"},
     }).to_list(50)
     return {"cards": [serialize(c) for c in cards]}
 
