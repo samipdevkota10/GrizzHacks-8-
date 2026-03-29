@@ -95,6 +95,7 @@ async def weekly_digest(user_id: str):
         "user_id": uid,
         "date": {"$gte": week_ago},
         "amount": {"$lt": 0},
+        "status": {"$nin": ["denied", "pending_review"]},
     }).to_list(200)
 
     cards = await db.user_cards.find({"user_id": uid}).to_list(20)

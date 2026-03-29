@@ -22,6 +22,7 @@ async def predict_next_month(user_id: ObjectId) -> dict:
         "user_id": user_id,
         "date": {"$gte": three_months_ago},
         "amount": {"$lt": 0},
+        "status": {"$nin": ["denied", "pending_review"]},
     }).to_list(1000)
 
     # Group by month and category
@@ -108,6 +109,7 @@ async def cash_flow_forecast(user_id: ObjectId) -> dict:
         "user_id": user_id,
         "date": {"$gte": week_ago},
         "amount": {"$lt": 0},
+        "status": {"$nin": ["denied", "pending_review"]},
     }).to_list(200)
 
     daily_non_recurring = 0.0

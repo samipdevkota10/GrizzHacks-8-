@@ -22,13 +22,14 @@ async def build_financial_context(user_id: str) -> dict:
         {"user_id": uid, "date": {"$gte": now - timedelta(days=90)}}
     ).sort("date", -1).to_list(500)
     
+    _excluded = ("denied", "pending_review")
     month_txns = [t for t in recent_transactions if t["date"] >= month_start]
-    month_spent = sum(abs(t["amount"]) for t in month_txns if t["amount"] < 0)
-    month_income = sum(t["amount"] for t in month_txns if t["amount"] > 0)
+    month_spent = sum(abs(t["amount"]) for t in month_txns if t["amount"] < 0 and t.get("status") not in _excluded)
+    month_income = sum(t["amount"] for t in month_txns if t["amount"] > 0 and t.get("status") not in _excluded)
     
     by_category = {}
     for t in month_txns:
-        if t["amount"] < 0:
+        if t["amount"] < 0 and t.get("status") not in _excluded:
             cat = t.get("category", "other")
             by_category[cat] = by_category.get(cat, 0) + abs(t["amount"])
     
@@ -56,7 +57,7 @@ async def build_financial_context(user_id: str) -> dict:
     financial_goals = profile.get("financial_goals", []) if profile else []
     category_budgets = profile.get("category_budgets", {}) if profile else {}
 
-    large_purchases = [t for t in month_txns if t["amount"] < -50]
+    large_purchases = [t for t in month_txns if t["amount"] < -50 and t.get("status") not in _excluded]
     large_purchases.sort(key=lambda x: x["amount"])
     large_text = "\n".join(
         f"  - {t['merchant_name']}: ${abs(t['amount']):.2f} on {t['date'].strftime('%b %d')}"

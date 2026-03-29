@@ -51,9 +51,14 @@ async def record_call_result(body: dict):
     if resolution == "no_answer":
         await db.fraud_alerts.update_one(
             {"_id": ObjectId(alert_id)},
-            {"$set": {"resolution": resolution, "last_call_attempt": now}},
+            {"$set": {"resolution": resolution, "last_call_attempt": now, "status": "resolved", "call_resolved_at": now}},
         )
-        return {"message": "No answer recorded. Alert remains open for follow-up."}
+        if tx_id:
+            await db.transactions.update_one(
+                {"_id": tx_id if isinstance(tx_id, ObjectId) else ObjectId(tx_id)},
+                {"$set": {"status": "denied"}},
+            )
+        return {"message": "No answer — transaction auto-blocked."}
 
     await db.fraud_alerts.update_one(
         {"_id": ObjectId(alert_id)},

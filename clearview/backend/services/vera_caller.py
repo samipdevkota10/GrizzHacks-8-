@@ -431,15 +431,23 @@ async def _poll_call_outcome(
                     "Could not infer resolution from transcript for alert %s, marking no_answer",
                     fraud_alert_id,
                 )
+                now_ts = datetime.utcnow()
                 await db.fraud_alerts.update_one(
                     {"_id": ObjectId(fraud_alert_id)},
                     {"$set": {
                         "status": "resolved",
                         "resolution": "no_answer",
-                        "call_resolved_at": datetime.utcnow(),
+                        "call_resolved_at": now_ts,
                         "resolved_by": "auto_call_poll_no_signal",
                     }},
                 )
+                alert = await db.fraud_alerts.find_one({"_id": ObjectId(fraud_alert_id)})
+                tx_id = alert.get("transaction_id") if alert else None
+                if tx_id:
+                    await db.transactions.update_one(
+                        {"_id": tx_id if isinstance(tx_id, ObjectId) else ObjectId(tx_id)},
+                        {"$set": {"status": "denied"}},
+                    )
             return
 
     logger.warning("Poll timed out after %ds for alert %s", max_wait_seconds, fraud_alert_id)
@@ -454,6 +462,12 @@ async def _poll_call_outcome(
                 "resolved_by": "auto_call_poll_timeout",
             }},
         )
+        tx_id = alert.get("transaction_id")
+        if tx_id:
+            await db.transactions.update_one(
+                {"_id": tx_id if isinstance(tx_id, ObjectId) else ObjectId(tx_id)},
+                {"$set": {"status": "denied"}},
+            )
         # SMS fallback when call went unanswered / timed out
         user = await db.users.find_one({"_id": alert["user_id"]})
         from config import settings
