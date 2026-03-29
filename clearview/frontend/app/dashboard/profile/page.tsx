@@ -94,13 +94,25 @@ export default function ProfilePage() {
     fetch(`${API_URL}/api/auth/profile`, {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
-      .then((d: ProfileData) => {
-        setData(d);
-        setName(d.user.name || "");
-        setPhone(d.user.phone_number || "");
-        setVeraName(d.user.vera_name || "Vera");
-        const fp = d.financial_profile;
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error("Failed to fetch profile");
+        }
+        return r.json();
+      })
+      .then((d: Partial<ProfileData>) => {
+        const user = d?.user ?? ({} as ProfileData["user"]);
+        const fp = d?.financial_profile ?? ({} as ProfileData["financial_profile"]);
+        const normalized: ProfileData = {
+          user,
+          financial_profile: fp,
+          accounts: Array.isArray(d?.accounts) ? d.accounts : [],
+        };
+
+        setData(normalized);
+        setName(user.name || "");
+        setPhone(user.phone_number || "");
+        setVeraName(user.vera_name || "Vera");
         setMonthlyIncome(String(fp.monthly_income ?? ""));
         setMonthlyBudget(String(fp.monthly_budget ?? ""));
         setSavingsGoal(String(fp.savings_goal_monthly ?? ""));
@@ -251,7 +263,7 @@ export default function ProfilePage() {
             <label className="text-xs text-muted-foreground mb-1.5 block">Email</label>
             <div className="relative">
               <Mail size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input value={data?.user.email || ""} disabled className={`${inputCls} pl-9 opacity-50 cursor-not-allowed`} />
+              <input value={data?.user?.email || ""} disabled className={`${inputCls} pl-9 opacity-50 cursor-not-allowed`} />
             </div>
           </div>
           <div>
@@ -270,7 +282,7 @@ export default function ProfilePage() {
         <div className="pt-1">
           <p className="text-xs text-muted-foreground">
             Member since{" "}
-            {data?.user.created_at
+            {data?.user?.created_at
               ? new Date(data.user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" })
               : "—"}
           </p>
