@@ -14,6 +14,7 @@ import {
   LogOut,
   Bell,
   Search,
+  UserCircle,
 } from "lucide-react";
 import { getUserId, getToken, clearAuth, fetchDashboard } from "@/lib/api";
 
@@ -25,6 +26,7 @@ const NAV_ITEMS = [
   { href: "/dashboard/goals", label: "Goals", icon: Target },
   { href: "/dashboard/advisor", label: "AI Advisor", icon: BrainCircuit },
   { href: "/dashboard/bills", label: "Bills & Subs", icon: Receipt },
+  { href: "/dashboard/profile", label: "Profile & Settings", icon: UserCircle },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {

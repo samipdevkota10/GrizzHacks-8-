@@ -271,3 +271,64 @@ async def me(user_id: str = Depends(get_current_user)):
     if not user:
         raise HTTPException(404, "User not found")
     return _safe_user(user)
+
+
+@router.get("/profile")
+async def get_profile(user_id: str = Depends(get_current_user)):
+    """Return user + financial profile merged for the profile editing page."""
+    db = get_database()
+    uid = ObjectId(user_id)
+    user = await db.users.find_one({"_id": uid})
+    if not user:
+        raise HTTPException(404, "User not found")
+
+    profile = None
+    if user.get("financial_profile_id"):
+        profile = await db.financial_profiles.find_one(
+            {"_id": ObjectId(user["financial_profile_id"])}
+        )
+
+    accounts = await db.accounts.find({"user_id": uid, "is_active": True}).to_list(None)
+
+    def _ser(doc):
+        if doc is None:
+            return {}
+        out = {k: (str(v) if isinstance(v, ObjectId) else v) for k, v in doc.items()}
+        return out
+
+    return {
+        "user": _safe_user(user),
+        "financial_profile": _ser(profile),
+        "accounts": [_ser(a) for a in accounts],
+    }
+
+
+@router.patch("/profile")
+async def update_profile(body: dict, user_id: str = Depends(get_current_user)):
+    """Update user info and/or financial profile fields."""
+    db = get_database()
+    uid = ObjectId(user_id)
+    now = datetime.utcnow()
+
+    user_fields = {}
+    for field in ["name", "phone_number", "avatar_url", "vera_name", "vera_personality"]:
+        if field in body:
+            user_fields[field] = body[field]
+    if user_fields:
+        user_fields["updated_at"] = now
+        await db.users.update_one({"_id": uid}, {"$set": user_fields})
+
+    profile_fields = {}
+    for field in ["monthly_income", "monthly_budget", "savings_goal_monthly",
+                  "hourly_rate", "tax_rate", "financial_goals", "category_budgets"]:
+        if field in body:
+            profile_fields[field] = body[field]
+    if profile_fields:
+        user = await db.users.find_one({"_id": uid})
+        if user and user.get("financial_profile_id"):
+            await db.financial_profiles.update_one(
+                {"_id": ObjectId(user["financial_profile_id"])},
+                {"$set": {**profile_fields, "last_synced": now}},
+            )
+
+    return {"status": "ok"}

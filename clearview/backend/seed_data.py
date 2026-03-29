@@ -104,7 +104,7 @@ async def seed() -> None:
             "balance": 4247.83,
             "currency": "USD",
             "institution_name": "Chase",
-            "institution_logo_url": None,
+            "institution_logo_url": "chase.com",
             "is_primary_checking": True,
             "color": "#4F8EF7",
             "created_at": now,
@@ -118,7 +118,7 @@ async def seed() -> None:
             "balance": 8120.00,
             "currency": "USD",
             "institution_name": "Marcus",
-            "institution_logo_url": None,
+            "institution_logo_url": "marcus.com",
             "is_primary_checking": False,
             "color": "#00D26A",
             "created_at": now,
@@ -132,7 +132,7 @@ async def seed() -> None:
             "balance": -1340.50,
             "currency": "USD",
             "institution_name": "Chase",
-            "institution_logo_url": None,
+            "institution_logo_url": "chase.com",
             "is_primary_checking": False,
             "color": "#FF4757",
             "created_at": now,
@@ -146,7 +146,7 @@ async def seed() -> None:
             "balance": 12372.00,
             "currency": "USD",
             "institution_name": "Fidelity",
-            "institution_logo_url": None,
+            "institution_logo_url": "fidelity.com",
             "is_primary_checking": False,
             "color": "#FFB836",
             "created_at": now,
@@ -219,6 +219,16 @@ async def seed() -> None:
         "Amazon Prime": "Amazon Prime",
         "Hulu": "Hulu",
     }
+    sub_logo_domains = {
+        "Netflix": "netflix.com",
+        "Spotify": "spotify.com",
+        "Planet Fitness": "planetfitness.com",
+        "Adobe Creative Cloud": "adobe.com",
+        "iCloud 200GB": "apple.com",
+        "New York Times": "nytimes.com",
+        "Amazon Prime": "amazon.com",
+        "Hulu": "hulu.com",
+    }
     sub_docs = []
     sub_ids_by_name: dict[str, ObjectId] = {}
     for i, (name, amount, cat, usage, cancel, last_known) in enumerate(sub_rows):
@@ -232,7 +242,7 @@ async def seed() -> None:
                 "user_id": uid,
                 "virtual_card_id": str(card_ids_by_merchant[m]),
                 "name": name,
-                "logo_url": None,
+                "logo_url": sub_logo_domains.get(name),
                 "amount": amount,
                 "billing_cycle": "monthly",
                 "next_billing_date": next_d,
@@ -287,6 +297,31 @@ async def seed() -> None:
     transactions: list[dict] = []
     y, m = now.year, now.month
 
+    MERCHANT_DOMAINS: dict[str, str] = {
+        "Netflix": "netflix.com",
+        "Spotify": "spotify.com",
+        "Planet Fitness": "planetfitness.com",
+        "Adobe Creative Cloud": "adobe.com",
+        "iCloud 200GB": "apple.com",
+        "iCloud": "apple.com",
+        "New York Times": "nytimes.com",
+        "Amazon Prime": "amazon.com",
+        "Amazon": "amazon.com",
+        "Hulu": "hulu.com",
+        "Whole Foods": "wholefoodsmarket.com",
+        "Trader Joe's": "traderjoes.com",
+        "Target": "target.com",
+        "Uber": "uber.com",
+        "Uber Eats": "ubereats.com",
+        "Lyft": "lyft.com",
+        "Starbucks": "starbucks.com",
+        "McDonald's": "mcdonalds.com",
+        "Chipotle": "chipotle.com",
+        "Chase": "chase.com",
+        "Employer Payroll": None,
+        "Fidelity": "fidelity.com",
+    }
+
     def add_tx(
         dt: datetime,
         amount: float,
@@ -310,7 +345,7 @@ async def seed() -> None:
                 "amount": amount,
                 "currency": "USD",
                 "merchant_name": merchant,
-                "merchant_logo_url": None,
+                "merchant_logo_url": MERCHANT_DOMAINS.get(merchant),
                 "category": category,
                 "subcategory": None,
                 "description": description,

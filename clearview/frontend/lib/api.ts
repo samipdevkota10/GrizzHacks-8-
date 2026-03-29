@@ -21,7 +21,7 @@ export function getUserId(): string {
     const stored = localStorage.getItem("verafund_user_id");
     if (stored) return stored;
   }
-  return process.env.NEXT_PUBLIC_VERAFUND_USER_ID || "";
+  return process.env.NEXT_PUBLIC_CLEARVIEW_USER_ID || "";
 }
 
 export function setUserId(id: string): void {
