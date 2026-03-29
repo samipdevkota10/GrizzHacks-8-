@@ -35,9 +35,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${playfairDisplay.variable} ${jetbrainsMono.variable}`}
+      data-scroll-behavior="smooth"
       suppressHydrationWarning
     >
       <head>
+        <link rel="icon" href="/images/logo-icon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/images/logo-icon.svg" />
         <script
           dangerouslySetInnerHTML={{
             __html: `

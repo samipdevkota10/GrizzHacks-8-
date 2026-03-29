@@ -109,20 +109,38 @@ Rules:
 
 
 def _parse_json_response(text: str) -> dict | None:
-    """Extract JSON from a model response, handling code fences."""
+    """Extract JSON from a model response, handling code fences and extra text."""
+    if not text:
+        return None
     text = text.strip()
-    if text.startswith("```"):
-        text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+
+    # Strip ```json ... ``` fences anywhere in the text
+    import re
+    fence_match = re.search(r"```(?:json)?\s*\n?(.*?)```", text, re.DOTALL)
+    if fence_match:
+        text = fence_match.group(1).strip()
+
+    # Try direct parse
     try:
         return json.loads(text)
     except json.JSONDecodeError:
-        start = text.find("{")
-        end = text.rfind("}") + 1
-        if start >= 0 and end > start:
-            try:
-                return json.loads(text[start:end])
-            except json.JSONDecodeError:
-                pass
+        pass
+
+    # Find the outermost { ... } block
+    depth = 0
+    start = -1
+    for i, ch in enumerate(text):
+        if ch == "{":
+            if depth == 0:
+                start = i
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0 and start >= 0:
+                try:
+                    return json.loads(text[start : i + 1])
+                except json.JSONDecodeError:
+                    start = -1
     return None
 
 
@@ -160,15 +178,24 @@ class GeminiService:
 
         extraction_response = await self.vision_model.generate_content_async(
             [VISION_EXTRACTION_PROMPT, image],
-            generation_config=genai.GenerationConfig(temperature=0.1, max_output_tokens=200),
+            generation_config=genai.GenerationConfig(
+                temperature=0.1,
+                max_output_tokens=300,
+                response_mime_type="application/json",
+            ),
         )
 
         extracted = _parse_json_response(extraction_response.text)
         if not extracted:
+            logger.warning("Vision extraction failed to parse: %s", extraction_response.text[:300])
             extracted = {"product": "Unknown Product", "price": 0.0, "currency": "USD"}
 
-        product = extracted.get("product", "Unknown")
-        price = float(extracted.get("price", 0))
+        product = extracted.get("product") or "Unknown Product"
+        raw_price = extracted.get("price", 0)
+        try:
+            price = float(raw_price)
+        except (TypeError, ValueError):
+            price = 0.0
 
         cat_spending = context.get("spending_by_category", {})
         cat_text = "\n".join(f"  - {c}: ${a:,.2f}" for c, a in sorted(cat_spending.items(), key=lambda x: -x[1]))
@@ -203,13 +230,18 @@ class GeminiService:
                 {"role": "model", "parts": [{"text": "Ready to evaluate this purchase with the user's real financial data."}]},
                 {"role": "user", "parts": [{"text": analysis_prompt}]},
             ],
-            generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=800),
+            generation_config=genai.GenerationConfig(
+                temperature=0.3,
+                max_output_tokens=1000,
+                response_mime_type="application/json",
+            ),
         )
 
         analysis = _parse_json_response(advice_response.text)
 
         if not analysis:
-            reasoning = advice_response.text.strip()
+            logger.warning("Purchase analysis parse failed: %s", advice_response.text[:300])
+            reasoning = "Vera couldn't fully analyze this purchase. Please try again with a clearer product image."
             net_hr = context.get("net_hourly_rate", 23.4)
             hours = round(price / net_hr, 1) if net_hr > 0 else 0
             analysis = {
@@ -240,7 +272,11 @@ class GeminiService:
 
         response = await self.vision_model.generate_content_async(
             [RECEIPT_SCAN_PROMPT, image],
-            generation_config=genai.GenerationConfig(temperature=0.1, max_output_tokens=1000),
+            generation_config=genai.GenerationConfig(
+                temperature=0.1,
+                max_output_tokens=1200,
+                response_mime_type="application/json",
+            ),
         )
 
         result = _parse_json_response(response.text)

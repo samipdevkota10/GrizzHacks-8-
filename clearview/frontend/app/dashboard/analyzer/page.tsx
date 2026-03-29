@@ -27,8 +27,9 @@ import {
   Plus,
 } from "lucide-react";
 
+import { getUserId } from "@/lib/api";
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
-const USER_ID = process.env.NEXT_PUBLIC_CLEARVIEW_USER_ID || "";
 
 type GoalDelay = { goal_name: string; delayed_by_weeks: number };
 type Alternative = { name: string; estimated_price: number };
@@ -121,9 +122,11 @@ export default function PurchaseAnalyzer() {
 
   const [userStats, setUserStats] = useState({ netHourlyRate: 0, budgetRemaining: 0, monthlySavings: 0 });
 
+  const uid = typeof window !== "undefined" ? getUserId() : "";
+
   useEffect(() => {
-    if (!USER_ID) return;
-    fetch(`${API_URL}/api/dashboard/${USER_ID}`)
+    if (!uid) return;
+    fetch(`${API_URL}/api/dashboard/${uid}`)
       .then((r) => r.json())
       .then((data) => {
         const profile = data.financial_profile;
@@ -144,14 +147,14 @@ export default function PurchaseAnalyzer() {
   }, []);
 
   function loadHistory() {
-    fetch(`${API_URL}/api/advisor/purchase-history/${USER_ID}?limit=10`)
+    fetch(`${API_URL}/api/advisor/purchase-history/${uid}?limit=10`)
       .then((r) => r.json())
       .then((data) => setHistory(data.analyses || []))
       .catch(() => {});
   }
 
   function loadWishlist() {
-    fetch(`${API_URL}/api/advisor/wishlist/${USER_ID}`)
+    fetch(`${API_URL}/api/advisor/wishlist/${uid}`)
       .then((r) => r.json())
       .then((data) => setWishlist(data.items || []))
       .catch(() => {});
@@ -174,14 +177,14 @@ export default function PurchaseAnalyzer() {
   });
 
   const analyzePurchase = async () => {
-    if (!imageFile || !USER_ID) return;
+    if (!imageFile || !uid) return;
     setAnalyzing(true);
     setError(null);
     setSavedToWishlist(false);
     try {
       const formData = new FormData();
       formData.append("image", imageFile);
-      formData.append("user_id", USER_ID);
+      formData.append("user_id", uid);
       const res = await fetch(`${API_URL}/api/advisor/purchase-check`, { method: "POST", body: formData });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data: AnalysisResult = await res.json();
@@ -195,14 +198,14 @@ export default function PurchaseAnalyzer() {
   };
 
   const scanReceipt = async () => {
-    if (!imageFile || !USER_ID) return;
+    if (!imageFile || !uid) return;
     setAnalyzing(true);
     setError(null);
     setReceiptConfirmed(false);
     try {
       const formData = new FormData();
       formData.append("image", imageFile);
-      formData.append("user_id", USER_ID);
+      formData.append("user_id", uid);
       const res = await fetch(`${API_URL}/api/advisor/scan-receipt`, { method: "POST", body: formData });
       if (!res.ok) throw new Error(`API error: ${res.status}`);
       const data: ReceiptResult = await res.json();
@@ -233,13 +236,13 @@ export default function PurchaseAnalyzer() {
   };
 
   const saveToWishlist = async () => {
-    if (!purchaseResult || !USER_ID) return;
+    if (!purchaseResult || !uid) return;
     try {
       await fetch(`${API_URL}/api/advisor/wishlist`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          user_id: USER_ID,
+          user_id: uid,
           product: purchaseResult.product,
           price: purchaseResult.price,
           verdict: purchaseResult.verdict,
