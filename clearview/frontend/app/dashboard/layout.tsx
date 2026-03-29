@@ -31,6 +31,15 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname();
   const [user, setUser] = useState<{ name: string; email: string; avatar_url: string | null } | null>(null);
   const [alertCount, setAlertCount] = useState(0);
+  const [dateLabel, setDateLabel] = useState<{ full: string; day: string } | null>(null);
+
+  useEffect(() => {
+    const now = new Date();
+    setDateLabel({
+      full: now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }),
+      day: now.toLocaleDateString("en-US", { weekday: "long" }),
+    });
+  }, []);
 
   useEffect(() => {
     const uid = getUserId();
@@ -60,10 +69,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   };
 
   return (
-    <div className="flex h-screen bg-background overflow-hidden">
+    <div className="flex h-screen bg-background overflow-hidden" suppressHydrationWarning>
       {/* Sidebar */}
       <aside className="w-64 flex-shrink-0 border-r border-border bg-card flex flex-col">
-        <div className="p-6 pb-4">
+        <div className="p-6 pb-4" suppressHydrationWarning>
           <Link href="/" className="flex items-center gap-2">
             <img src="/images/logo-icon.svg" alt="Vera Fund" className="w-8 h-8 rounded-full" />
             <span className="text-lg font-bold text-foreground">
@@ -137,12 +146,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 </span>
               )}
             </button>
-            <div className="text-right">
-              <p className="text-sm font-medium text-foreground">
-                {new Date().toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" })}
+            <div className="text-right" suppressHydrationWarning>
+              <p className="text-sm font-medium text-foreground" suppressHydrationWarning>
+                {dateLabel?.full ?? ""}
               </p>
-              <p className="text-xs text-muted-foreground">
-                {new Date().toLocaleDateString("en-US", { weekday: "long" })}
+              <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+                {dateLabel?.day ?? ""}
               </p>
             </div>
           </div>
