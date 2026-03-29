@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from bson import ObjectId
 
 from database import get_database
-from services.auth_service import hash_password
+from services.auth_service import create_access_token, hash_password
 
 random.seed(42)
 
@@ -498,12 +498,16 @@ async def seed() -> None:
     if transactions:
         await db.transactions.insert_many(transactions)
 
+    await db.users.create_index("email", unique=True)
+
     user_count = await db.users.count_documents({})
     account_count = await db.accounts.count_documents({})
     card_count = await db.virtual_cards.count_documents({})
     sub_count = await db.subscriptions.count_documents({})
     txn_count = await db.transactions.count_documents({})
     alert_count = await db.anomaly_alerts.count_documents({})
+
+    demo_token = create_access_token(str(user_id))
 
     print()
     print("=" * 60)
@@ -521,6 +525,14 @@ async def seed() -> None:
     print("  Demo login credentials:")
     print("    Email:    alex@verafunddemo.com")
     print("    Password: demo123")
+    print()
+    print("  Auth endpoints:")
+    print("    POST /api/auth/login   {\"email\": \"alex@verafunddemo.com\", \"password\": \"demo123\"}")
+    print("    POST /api/auth/signup  {\"name\": \"...\", \"email\": \"...\", \"password\": \"...\"}")
+    print("    GET  /api/auth/me      (Bearer token required)")
+    print()
+    print(f"  Demo JWT token (valid {24}h):")
+    print(f"    {demo_token}")
     print("=" * 60)
 
 
