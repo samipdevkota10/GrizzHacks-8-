@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import random
 import re
 
 import google.generativeai as genai
@@ -11,24 +12,31 @@ genai.configure(api_key=settings.GEMINI_API_KEY)
 
 logger = logging.getLogger(__name__)
 
+_GEMINI_SEMAPHORE = asyncio.Semaphore(3)
 
-async def _call_with_retry(coro_fn, max_retries: int = 2):
-    """Call a Gemini async function with retry on transient API errors."""
-    for attempt in range(max_retries + 1):
-        try:
-            return await coro_fn()
-        except ResourceExhausted as e:
-            if attempt == max_retries:
-                raise
-            wait = min(2 ** (attempt + 1), 30)
-            logger.warning("Gemini 429 rate-limited, retrying in %ds (attempt %d/%d)", wait, attempt + 1, max_retries)
-            await asyncio.sleep(wait)
-        except (ServiceUnavailable, DeadlineExceeded, GoogleAPICallError) as e:
-            if attempt == max_retries:
-                raise
-            wait = min(2 ** (attempt + 1), 20)
-            logger.warning("Gemini transient error (%s), retrying in %ds (attempt %d/%d)", type(e).__name__, wait, attempt + 1, max_retries)
-            await asyncio.sleep(wait)
+
+async def _call_with_retry(coro_fn, max_retries: int = 5):
+    """Call a Gemini async function with retry + exponential backoff + jitter."""
+    async with _GEMINI_SEMAPHORE:
+        for attempt in range(max_retries + 1):
+            try:
+                return await coro_fn()
+            except ResourceExhausted:
+                if attempt == max_retries:
+                    raise
+                base_wait = min(2 ** (attempt + 1), 60)
+                jitter = random.uniform(0, base_wait * 0.5)
+                wait = base_wait + jitter
+                logger.warning("Gemini 429 rate-limited, retrying in %.1fs (attempt %d/%d)", wait, attempt + 1, max_retries)
+                await asyncio.sleep(wait)
+            except (ServiceUnavailable, DeadlineExceeded, GoogleAPICallError):
+                if attempt == max_retries:
+                    raise
+                base_wait = min(2 ** (attempt + 1), 30)
+                jitter = random.uniform(0, base_wait * 0.3)
+                wait = base_wait + jitter
+                logger.warning("Gemini transient error, retrying in %.1fs (attempt %d/%d)", wait, attempt + 1, max_retries)
+                await asyncio.sleep(wait)
 
 SYSTEM_PROMPT_TEMPLATE = '''You are Vera, {user_name}'s personal financial advisor inside the VeraFund app.
 
@@ -208,10 +216,10 @@ class GeminiService:
 
         contents.append({"role": "user", "parts": [{"text": message}]})
 
-        response = await self.model.generate_content_async(
+        response = await _call_with_retry(lambda: self.model.generate_content_async(
             contents,
             generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=2048),
-        )
+        ))
         return response.text or "I'm having trouble processing that right now. Could you rephrase?"
 
     async def purchase_vision_check(self, image_bytes: bytes, context: dict) -> dict:
@@ -379,14 +387,14 @@ Return ONLY valid JSON with this shape (no markdown):
 Rules: Mention the dollar amount and merchant name in opening_line. Stay under 40 words per string."""
 
         try:
-            response = await self.model.generate_content_async(
+            response = await _call_with_retry(lambda: self.model.generate_content_async(
                 prompt,
                 generation_config=genai.GenerationConfig(
                     temperature=0.2,
                     max_output_tokens=2048,
                     response_mime_type="application/json",
                 ),
-            )
+            ))
             text = response.text.strip()
             if text.startswith("```"):
                 text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
