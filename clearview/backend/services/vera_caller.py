@@ -13,6 +13,7 @@ from objectid_util import parse_user_object_id
 from services.elevenlabs_service import elevenlabs_service
 from services.financial_context import build_financial_context
 from services.gemini_service import gemini_service
+from services.sms_service import send_fraud_sms_fallback
 
 logger = logging.getLogger(__name__)
 
@@ -238,6 +239,11 @@ async def initiate_fraud_call(
     }
     if not call_succeeded:
         update_fields["call_error"] = call_result.get("message", "Unknown error")
+        # SMS fallback when call cannot be initiated at all
+        asyncio.create_task(
+            send_fraud_sms_fallback(phone, merchant_name, amount, fraud_alert_id),
+            name=f"sms-fallback-initfail-{fraud_alert_id[:8]}",
+        )
     if grounded:
         update_fields["gemini_call_script"] = grounded
     if call_result.get("conversation_id"):
@@ -448,3 +454,12 @@ async def _poll_call_outcome(
                 "resolved_by": "auto_call_poll_timeout",
             }},
         )
+        # SMS fallback when call went unanswered / timed out
+        user = await db.users.find_one({"_id": alert["user_id"]})
+        from config import settings
+        to_phone = (user or {}).get("phone_number") or settings.USER_PHONE_NUMBER
+        if to_phone:
+            asyncio.create_task(
+                send_fraud_sms_fallback(to_phone, alert["merchant_name"], alert["amount"], fraud_alert_id),
+                name=f"sms-fallback-timeout-{fraud_alert_id[:8]}",
+            )

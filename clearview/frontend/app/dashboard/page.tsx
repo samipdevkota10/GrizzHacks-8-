@@ -59,6 +59,8 @@ import { CardOptimizerWidget } from "@/components/dashboard/CardOptimizerWidget"
 import { SpendingPredictionCard } from "@/components/dashboard/SpendingPredictionCard";
 import { CashFlowForecast } from "@/components/dashboard/CashFlowForecast";
 import { FraudAlertBanner } from "@/components/dashboard/FraudAlertBanner";
+import { VeraActivityCard } from "@/components/dashboard/VeraActivityCard";
+import { TechStackCard } from "@/components/dashboard/TechStackCard";
 import { useChartColors } from "@/lib/useChartColors";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -291,7 +293,7 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-6">
-      {/* Greeting row — includes net worth delta and subtle demo trigger */}
+      {/* Greeting row — includes net worth delta, live pulse, and subtle demo trigger */}
       <div className="flex items-start justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground" suppressHydrationWarning>
@@ -301,6 +303,14 @@ export default function DashboardOverview() {
             {monthNames[now.getMonth()]} {now.getFullYear()} · Net Worth{" "}
             <span className="font-medium text-foreground">${(data.net_worth || 0).toLocaleString()}</span>
           </p>
+          {/* Live monitoring pulse */}
+          <div className="flex items-center gap-2 mt-2">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-primary" />
+            </span>
+            <span className="text-[11px] text-muted-foreground">Vera is monitoring your accounts</span>
+          </div>
         </div>
         {/* Demo-only: subtle fraud test trigger */}
         {fraudAlerts.filter((a) => a.status !== "resolved").length === 0 && (
@@ -368,6 +378,9 @@ export default function DashboardOverview() {
           icon={Wallet}
         />
       </div>
+
+      {/* Vera Activity — resolved fraud timeline. Shown whenever Vera has acted. */}
+      <VeraActivityCard alerts={fraudAlerts} />
 
       <div className="grid grid-cols-3 gap-4">
         <div className="col-span-2 rounded-2xl bg-card border border-border p-5">
@@ -636,6 +649,9 @@ export default function DashboardOverview() {
       </div>
 
       <CardOptimizerWidget />
+
+      {/* Tech stack card — makes technical complexity visible to judges */}
+      <TechStackCard />
     </div>
   );
 }

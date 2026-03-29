@@ -35,6 +35,11 @@ class Settings(BaseSettings):
     PLAID_PRODUCTS: str = "transactions"
     PLAID_COUNTRY_CODES: str = "US"
 
+    # Twilio direct SMS (optional — for fallback when voice call fails)
+    TWILIO_ACCOUNT_SID: str = ""
+    TWILIO_AUTH_TOKEN: str = ""
+    TWILIO_PHONE_NUMBER: str = ""  # The +1 digits of the Twilio phone (not ElevenLabs phone resource id)
+
     JWT_SECRET_KEY: str = "change-me-in-production"
     JWT_ALGORITHM: str = "HS256"
     JWT_EXPIRE_HOURS: int = 24
