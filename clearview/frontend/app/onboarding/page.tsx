@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import {
   Briefcase,
@@ -18,7 +18,15 @@ import {
   DollarSign,
   Loader2,
 } from "lucide-react";
-import { submitOnboarding, getUserId, getToken } from "@/lib/api";
+import {
+  submitOnboarding,
+  getUserId,
+  getToken,
+  fetchOnboardingDraft,
+  saveOnboardingDraft,
+  plaidSandboxBootstrap,
+  syncPlaid,
+} from "@/lib/api";
 import type { OnboardingPayload } from "@/lib/api";
 
 const STEPS = [
@@ -64,7 +72,10 @@ type LoanEntry = { name: string; balance: string; rate: string; monthly: string;
 
 export default function OnboardingPage() {
   const [step, setStep] = useState(0);
+  const [draftLoading, setDraftLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [syncingBank, setSyncingBank] = useState(false);
+  const [bankSyncMessage, setBankSyncMessage] = useState("");
   const [error, setError] = useState("");
 
   // Step 0: Income & Employment
@@ -95,6 +106,64 @@ export default function OnboardingPage() {
   // Step 5: Loans
   const [loans, setLoans] = useState<LoanEntry[]>([]);
   const [loanDraft, setLoanDraft] = useState<LoanEntry>({ name: "", balance: "", rate: "", monthly: "", lender: "" });
+
+  const buildDraftPayload = () => ({
+    monthlyIncome,
+    employmentType,
+    employerName,
+    payFrequency,
+    hourlyRate,
+    taxRate,
+    phoneNumber,
+    monthlyBudget,
+    savingsGoal,
+    goals,
+    selectedGoalPresets: Array.from(selectedGoalPresets),
+    accounts,
+    cards,
+    loans,
+  });
+
+  useEffect(() => {
+    const uid = getUserId();
+    const token = getToken();
+    if (!uid || !token) {
+      window.location.href = "/auth";
+      return;
+    }
+    fetchOnboardingDraft()
+      .then((draft) => {
+        const data = (draft?.data || {}) as Record<string, unknown>;
+        if (typeof draft?.step === "number" && draft.step >= 0 && draft.step < STEPS.length) {
+          setStep(draft.step);
+        }
+        if (typeof data.monthlyIncome === "string") setMonthlyIncome(data.monthlyIncome);
+        if (typeof data.employmentType === "string") setEmploymentType(data.employmentType);
+        if (typeof data.employerName === "string") setEmployerName(data.employerName);
+        if (typeof data.payFrequency === "string") setPayFrequency(data.payFrequency);
+        if (typeof data.hourlyRate === "string") setHourlyRate(data.hourlyRate);
+        if (typeof data.taxRate === "string") setTaxRate(data.taxRate);
+        if (typeof data.phoneNumber === "string") setPhoneNumber(data.phoneNumber);
+        if (typeof data.monthlyBudget === "string") setMonthlyBudget(data.monthlyBudget);
+        if (typeof data.savingsGoal === "string") setSavingsGoal(data.savingsGoal);
+        if (Array.isArray(data.goals)) setGoals(data.goals as GoalEntry[]);
+        if (Array.isArray(data.accounts)) setAccounts(data.accounts as AccountEntry[]);
+        if (Array.isArray(data.cards)) setCards(data.cards as CardEntry[]);
+        if (Array.isArray(data.loans)) setLoans(data.loans as LoanEntry[]);
+        if (Array.isArray(data.selectedGoalPresets)) {
+          setSelectedGoalPresets(new Set((data.selectedGoalPresets as string[]).filter(Boolean)));
+        }
+      })
+      .finally(() => setDraftLoading(false));
+  }, []);
+
+  const persistDraft = async (nextStep: number) => {
+    try {
+      await saveOnboardingDraft(nextStep, buildDraftPayload());
+    } catch (e) {
+      console.error("Failed to save draft:", e);
+    }
+  };
 
   const toggleGoalPreset = (preset: typeof GOAL_PRESETS[0]) => {
     const next = new Set(selectedGoalPresets);
@@ -132,6 +201,24 @@ export default function OnboardingPage() {
     if (!loanDraft.name || !loanDraft.balance) return;
     setLoans((l) => [...l, loanDraft]);
     setLoanDraft({ name: "", balance: "", rate: "", monthly: "", lender: "" });
+  };
+
+  const connectSandboxBank = async () => {
+    setSyncingBank(true);
+    setBankSyncMessage("");
+    setError("");
+    try {
+      const res = await plaidSandboxBootstrap();
+      await syncPlaid();
+      setBankSyncMessage(
+        `Connected sandbox bank. Imported ${res.accounts_imported} accounts, ${res.transactions_imported} transactions, and detected ${res.subscriptions_detected} subscriptions.`
+      );
+      await persistDraft(step);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to connect bank.");
+    } finally {
+      setSyncingBank(false);
+    }
   };
 
   const canProceed = [
@@ -180,6 +267,11 @@ export default function OnboardingPage() {
         balance: parseFloat(a.balance) || 0,
         institution: a.institution,
       })),
+      cards: cards.map((c) => ({
+        name: c.name,
+        last4: c.last4,
+        type: c.type,
+      })),
       loans: loans.map((l) => ({
         name: l.name,
         balance: parseFloat(l.balance) || 0,
@@ -190,6 +282,7 @@ export default function OnboardingPage() {
     };
 
     try {
+      await persistDraft(step);
       await submitOnboarding(payload);
       window.location.href = "/dashboard";
     } catch (e: unknown) {
@@ -201,6 +294,17 @@ export default function OnboardingPage() {
   const inputCls =
     "w-full rounded-xl bg-background border border-border px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all";
   const selectCls = inputCls;
+
+  if (draftLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+          <Loader2 size={16} className="animate-spin" />
+          Restoring onboarding progress...
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
@@ -447,6 +551,21 @@ export default function OnboardingPage() {
                 <h2 className="text-xl font-bold text-foreground mb-1">Add your bank accounts</h2>
                 <p className="text-sm text-muted-foreground mb-6">Checking, savings, investments — add what you have so Vera can give you accurate advice.</p>
 
+                <div className="rounded-xl border border-border bg-warm p-4 mb-4">
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Faster option: connect a sandbox bank to import real account + transaction history now.
+                  </p>
+                  <button
+                    onClick={connectSandboxBank}
+                    disabled={syncingBank}
+                    className="inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-60"
+                  >
+                    {syncingBank ? <Loader2 size={13} className="animate-spin" /> : <Building2 size={13} />}
+                    {syncingBank ? "Connecting..." : "Connect Plaid Sandbox"}
+                  </button>
+                  {bankSyncMessage && <p className="text-xs text-green-600 mt-2">{bankSyncMessage}</p>}
+                </div>
+
                 {accounts.length > 0 && (
                   <div className="space-y-2 mb-4">
                     {accounts.map((a, i) => (
@@ -595,7 +714,11 @@ export default function OnboardingPage() {
           {/* Navigation */}
           <div className="flex items-center justify-between mt-8 pt-6 border-t border-border">
             <button
-              onClick={() => setStep((s) => Math.max(0, s - 1))}
+              onClick={async () => {
+                const next = Math.max(0, step - 1);
+                await persistDraft(next);
+                setStep(next);
+              }}
               disabled={step === 0}
               className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground disabled:opacity-0 transition-all"
             >
@@ -604,7 +727,11 @@ export default function OnboardingPage() {
 
             {step < STEPS.length - 1 ? (
               <button
-                onClick={() => setStep((s) => s + 1)}
+                onClick={async () => {
+                  const next = Math.min(STEPS.length - 1, step + 1);
+                  await persistDraft(next);
+                  setStep(next);
+                }}
                 disabled={!canProceed[step]}
                 className="flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all disabled:opacity-40"
               >
@@ -629,6 +756,17 @@ export default function OnboardingPage() {
         <p className="text-center text-xs text-muted-foreground mt-4">
           You can always update these settings later in your dashboard.
         </p>
+        <div className="text-center mt-2">
+          <button
+            onClick={async () => {
+              await persistDraft(step);
+              window.location.href = "/auth";
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground underline"
+          >
+            Save and continue later
+          </button>
+        </div>
       </motion.div>
     </div>
   );

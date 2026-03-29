@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
     fetchDashboard(uid).then((d) => {
       const u = d.user as { name?: string; email?: string; avatar_url?: string | null; onboarding_complete?: boolean };
-      if (u.onboarding_complete === false) {
+      if (u.onboarding_complete !== true) {
         window.location.href = "/onboarding";
         return;
       }

@@ -30,6 +30,11 @@ class Settings(BaseSettings):
     FRAUD_AMOUNT_THRESHOLD: float = 200.0
     FRAUD_OUTBOUND_USE_FIRST_MESSAGE: bool = True
     BACKEND_PUBLIC_URL: str = ""
+    PLAID_CLIENT_ID: str = ""
+    PLAID_SECRET: str = ""
+    PLAID_ENV: str = "sandbox"
+    PLAID_PRODUCTS: str = "transactions"
+    PLAID_COUNTRY_CODES: str = "US"
 
     JWT_SECRET_KEY: str = "change-me-in-production"
     JWT_ALGORITHM: str = "HS256"

@@ -139,11 +139,45 @@ export interface OnboardingPayload {
   financial_goals: { name: string; target_amount: number; current_amount: number }[];
   category_budgets: Record<string, number>;
   accounts: { name: string; type: string; balance: number; institution: string }[];
+  cards: { name: string; last4: string; type: "credit" | "debit" }[];
   loans: { name: string; balance: number; rate: number; monthly: number; lender: string }[];
 }
 
 export function submitOnboarding(data: OnboardingPayload): Promise<{ status: string; onboarding_complete: boolean }> {
   return post<{ status: string; onboarding_complete: boolean }>("/api/auth/onboarding", data);
+}
+
+export interface OnboardingDraftResponse {
+  step: number;
+  data: Record<string, unknown>;
+  updated_at: string | null;
+}
+
+export function fetchOnboardingDraft(): Promise<OnboardingDraftResponse> {
+  return get<OnboardingDraftResponse>("/api/auth/onboarding/draft");
+}
+
+export function saveOnboardingDraft(step: number, data: Record<string, unknown>): Promise<{ status: string }> {
+  return patch<{ status: string }>("/api/auth/onboarding/draft", { step, data });
+}
+
+export function plaidSandboxBootstrap(): Promise<{
+  status: string;
+  item_id: string;
+  accounts_imported: number;
+  transactions_imported: number;
+  subscriptions_detected: number;
+}> {
+  return post("/api/plaid/sandbox/bootstrap");
+}
+
+export function syncPlaid(): Promise<{
+  status: string;
+  accounts_imported: number;
+  transactions_imported: number;
+  subscriptions_detected: number;
+}> {
+  return post("/api/plaid/sync");
 }
 
 // ── Dashboard ────────────────────────────────────────────────

@@ -2,6 +2,7 @@ from datetime import datetime
 
 from bson import ObjectId
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 from pymongo.errors import OperationFailure
 
 from database import get_database
@@ -13,6 +14,56 @@ from services.auth_service import (
 )
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
+
+
+class GoalPayload(BaseModel):
+    name: str = ""
+    target_amount: float = 0
+    current_amount: float = 0
+
+
+class AccountPayload(BaseModel):
+    name: str = ""
+    type: str = "checking"
+    balance: float = 0
+    institution: str = ""
+
+
+class LoanPayload(BaseModel):
+    name: str = ""
+    balance: float = 0
+    rate: float = 0
+    monthly: float = 0
+    lender: str = ""
+
+
+class CardPayload(BaseModel):
+    name: str = ""
+    last4: str = ""
+    type: str = "debit"
+
+
+class OnboardingPayload(BaseModel):
+    monthly_income: float = 0
+    employment_type: str = "full_time"
+    employer_name: str = ""
+    pay_frequency: str = "biweekly"
+    hourly_rate: float = 0
+    tax_rate: float = 0.22
+    monthly_budget: float = 0
+    savings_goal_monthly: float = 0
+    phone_number: str = ""
+    currency: str = "USD"
+    financial_goals: list[GoalPayload] = Field(default_factory=list)
+    category_budgets: dict = Field(default_factory=dict)
+    accounts: list[AccountPayload] = Field(default_factory=list)
+    cards: list[CardPayload] = Field(default_factory=list)
+    loans: list[LoanPayload] = Field(default_factory=list)
+
+
+class OnboardingDraftPayload(BaseModel):
+    step: int = 0
+    data: dict = Field(default_factory=dict)
 
 _ATLAS_AUTH_MSG = (
     "Database authentication failed. Fix MONGODB_URI on the server: use the exact "
@@ -147,142 +198,251 @@ async def login(body: dict):
     }
 
 
-@router.post("/onboarding")
-async def complete_onboarding(body: dict, user_id: str = Depends(get_current_user)):
+def _default_category_budgets(monthly_budget: float) -> dict:
+    return {
+        "food": round(monthly_budget * 0.20),
+        "transport": round(monthly_budget * 0.08),
+        "entertainment": round(monthly_budget * 0.06),
+        "shopping": round(monthly_budget * 0.10),
+        "health": round(monthly_budget * 0.05),
+        "utilities": round(monthly_budget * 0.15),
+        "subscriptions": round(monthly_budget * 0.06),
+        "other": round(monthly_budget * 0.05),
+    }
+
+
+@router.get("/onboarding/draft")
+async def get_onboarding_draft(user_id: str = Depends(get_current_user)):
     db = get_database()
     uid = ObjectId(user_id)
+    draft = await db.onboarding_sessions.find_one({"user_id": uid, "status": "draft"})
+    if not draft:
+        return {"step": 0, "data": {}, "updated_at": None}
+    return {
+        "step": int(draft.get("step", 0)),
+        "data": draft.get("data", {}),
+        "updated_at": draft.get("updated_at"),
+    }
 
+
+@router.patch("/onboarding/draft")
+async def save_onboarding_draft(body: OnboardingDraftPayload, user_id: str = Depends(get_current_user)):
+    db = get_database()
+    uid = ObjectId(user_id)
+    now = datetime.utcnow()
+    await db.onboarding_sessions.update_one(
+        {"user_id": uid, "status": "draft"},
+        {
+            "$set": {
+                "step": body.step,
+                "data": body.data,
+                "updated_at": now,
+            },
+            "$setOnInsert": {
+                "_id": ObjectId(),
+                "created_at": now,
+                "status": "draft",
+            },
+        },
+        upsert=True,
+    )
+    return {"status": "ok"}
+
+
+@router.post("/onboarding")
+async def complete_onboarding(body: OnboardingPayload, user_id: str = Depends(get_current_user)):
+    db = get_database()
+    uid = ObjectId(user_id)
     user = await db.users.find_one({"_id": uid})
     if not user:
         raise HTTPException(404, "User not found")
 
-    monthly_income = float(body.get("monthly_income", 0))
-    employment_type = body.get("employment_type", "full_time")
-    employer_name = body.get("employer_name", "")
-    pay_frequency = body.get("pay_frequency", "biweekly")
-    hourly_rate = float(body.get("hourly_rate", 0))
-    tax_rate = float(body.get("tax_rate", 0.22))
-    monthly_budget = float(body.get("monthly_budget", 0)) or max(monthly_income * 0.7, 1500)
-    savings_goal_monthly = float(body.get("savings_goal_monthly", 0))
-    phone_number = body.get("phone_number", "")
-    currency = body.get("currency", "USD")
-
-    financial_goals = []
-    for g in body.get("financial_goals", []):
-        financial_goals.append({
-            "name": g.get("name", ""),
-            "target_amount": float(g.get("target_amount", 0)),
-            "current_amount": float(g.get("current_amount", 0)),
-        })
-
-    category_budgets = body.get("category_budgets", {})
-    if not category_budgets and monthly_budget > 0:
-        category_budgets = {
-            "food": round(monthly_budget * 0.20),
-            "transport": round(monthly_budget * 0.08),
-            "entertainment": round(monthly_budget * 0.06),
-            "shopping": round(monthly_budget * 0.10),
-            "health": round(monthly_budget * 0.05),
-            "utilities": round(monthly_budget * 0.15),
-            "subscriptions": round(monthly_budget * 0.06),
-            "other": round(monthly_budget * 0.05),
-        }
-
-    if hourly_rate <= 0 and monthly_income > 0:
-        hours_per_pay = {"weekly": 40, "biweekly": 80, "semimonthly": 86.67, "monthly": 173.33}
-        periods_per_month = {"weekly": 4.33, "biweekly": 2.167, "semimonthly": 2, "monthly": 1}
-        hourly_rate = round(monthly_income / 173.33, 2)
-
+    monthly_income = max(0.0, float(body.monthly_income))
+    monthly_budget = float(body.monthly_budget) if body.monthly_budget > 0 else max(monthly_income * 0.7, 1500)
+    hourly_rate = float(body.hourly_rate) if body.hourly_rate > 0 else (round(monthly_income / 173.33, 2) if monthly_income > 0 else 0.0)
+    tax_rate = min(max(float(body.tax_rate), 0.0), 0.7)
     now = datetime.utcnow()
+
+    financial_goals = [
+        {
+            "name": g.name.strip(),
+            "target_amount": max(0.0, float(g.target_amount)),
+            "current_amount": max(0.0, float(g.current_amount)),
+        }
+        for g in body.financial_goals
+        if g.name.strip()
+    ]
+    category_budgets = body.category_budgets or _default_category_budgets(monthly_budget)
+
     profile_update = {
         "monthly_income": monthly_income,
         "monthly_budget": monthly_budget,
         "hourly_rate": hourly_rate,
         "tax_rate": tax_rate,
         "category_budgets": category_budgets,
-        "savings_goal_monthly": savings_goal_monthly,
+        "savings_goal_monthly": max(0.0, float(body.savings_goal_monthly)),
         "financial_goals": financial_goals,
         "last_synced": now,
     }
 
     profile_id = user.get("financial_profile_id")
     if profile_id:
-        await db.financial_profiles.update_one(
-            {"_id": ObjectId(profile_id)},
-            {"$set": profile_update},
-        )
+        await db.financial_profiles.update_one({"_id": ObjectId(profile_id)}, {"$set": profile_update})
     else:
-        profile_doc = {
-            "_id": ObjectId(),
-            "user_id": uid,
-            "net_worth": 0.0,
-            "total_assets": 0.0,
-            "total_liabilities": 0.0,
-            **profile_update,
-        }
+        profile_doc = {"_id": ObjectId(), "user_id": uid, "net_worth": 0.0, "total_assets": 0.0, "total_liabilities": 0.0, **profile_update}
         result = await db.financial_profiles.insert_one(profile_doc)
         profile_id = str(result.inserted_id)
 
-    accounts = body.get("accounts", [])
-    for acc in accounts:
-        await db.accounts.insert_one({
-            "_id": ObjectId(),
+    # Merge + dedupe manual onboarding accounts
+    for acc in body.accounts:
+        name = acc.name.strip() or "Account"
+        acc_type = (acc.type or "checking").strip().lower()
+        institution = acc.institution.strip()
+        balance = float(acc.balance or 0)
+        query = {
             "user_id": uid,
-            "name": acc.get("name", "Account"),
-            "type": acc.get("type", "checking"),
-            "balance": float(acc.get("balance", 0)),
-            "currency": currency,
-            "institution_name": acc.get("institution", ""),
-            "institution_logo_url": None,
-            "is_primary_checking": acc.get("type") == "checking",
-            "color": "#4F8EF7",
-            "created_at": now,
-            "is_active": True,
-        })
-
-    loans = body.get("loans", [])
-    total_liabilities = 0.0
-    for loan in loans:
-        balance = float(loan.get("balance", 0))
-        total_liabilities += balance
-        await db.accounts.insert_one({
-            "_id": ObjectId(),
-            "user_id": uid,
-            "name": loan.get("name", "Loan"),
-            "type": "loan",
-            "balance": -abs(balance),
-            "currency": currency,
-            "institution_name": loan.get("lender", ""),
-            "institution_logo_url": None,
-            "is_primary_checking": False,
-            "color": "#FF4757",
-            "created_at": now,
-            "is_active": True,
-            "apr": float(loan.get("rate", 0)),
-            "monthly_payment": float(loan.get("monthly", 0)),
-        })
-
-    if total_liabilities > 0 and profile_id:
-        await db.financial_profiles.update_one(
-            {"_id": ObjectId(profile_id)},
-            {"$set": {"total_liabilities": total_liabilities}},
+            "source": {"$in": [None, "manual"]},
+            "name": name,
+            "type": acc_type,
+            "institution_name": institution,
+        }
+        await db.accounts.update_one(
+            query,
+            {
+                "$set": {
+                    "balance": balance,
+                    "currency": body.currency,
+                    "institution_logo_url": None,
+                    "is_primary_checking": acc_type == "checking",
+                    "color": "#4F8EF7" if acc_type != "credit" else "#FF4757",
+                    "is_active": True,
+                    "updated_at": now,
+                    "source": "manual",
+                },
+                "$setOnInsert": {
+                    "_id": ObjectId(),
+                    "created_at": now,
+                    "user_id": uid,
+                    "name": name,
+                    "type": acc_type,
+                    "institution_name": institution,
+                },
+            },
+            upsert=True,
         )
+
+    # Store user-declared cards as manual cards (no Stripe provisioning)
+    for card in body.cards:
+        name = card.name.strip() or "Card"
+        last4 = "".join(ch for ch in card.last4 if ch.isdigit())[-4:]
+        if not last4:
+            continue
+        card_type = "credit" if card.type == "credit" else "debit"
+        await db.virtual_cards.update_one(
+            {
+                "user_id": uid,
+                "source": {"$in": [None, "manual"]},
+                "nickname": name,
+                "last4": last4,
+            },
+            {
+                "$set": {
+                    "stripe_card_id": "",
+                    "merchant_name": name,
+                    "merchant_logo_url": None,
+                    "merchant_category": card_type,
+                    "exp_month": 12,
+                    "exp_year": now.year + 3,
+                    "status": "active",
+                    "spending_limit_monthly": 100,
+                    "spent_this_month": 0.0,
+                    "last_known_amount": None,
+                    "funding_account_id": None,
+                    "color_scheme": "blue",
+                    "paused_at": None,
+                    "destroyed_at": None,
+                    "total_charged_lifetime": 0.0,
+                    "charge_count": 0,
+                    "updated_at": now,
+                    "source": "manual",
+                },
+                "$setOnInsert": {
+                    "_id": ObjectId(),
+                    "created_at": now,
+                    "user_id": uid,
+                    "nickname": name,
+                    "last4": last4,
+                },
+            },
+            upsert=True,
+        )
+
+    for loan in body.loans:
+        name = loan.name.strip() or "Loan"
+        lender = loan.lender.strip()
+        balance = max(0.0, float(loan.balance or 0))
+        query = {
+            "user_id": uid,
+            "source": {"$in": [None, "manual"]},
+            "name": name,
+            "type": "loan",
+            "institution_name": lender,
+        }
+        await db.accounts.update_one(
+            query,
+            {
+                "$set": {
+                    "balance": -abs(balance),
+                    "currency": body.currency,
+                    "institution_logo_url": None,
+                    "is_primary_checking": False,
+                    "color": "#FF4757",
+                    "is_active": True,
+                    "apr": max(0.0, float(loan.rate or 0)),
+                    "monthly_payment": max(0.0, float(loan.monthly or 0)),
+                    "updated_at": now,
+                    "source": "manual",
+                },
+                "$setOnInsert": {
+                    "_id": ObjectId(),
+                    "created_at": now,
+                    "user_id": uid,
+                    "name": name,
+                    "type": "loan",
+                    "institution_name": lender,
+                },
+            },
+            upsert=True,
+        )
+
+    # Recompute totals from all active accounts
+    accounts = await db.accounts.find({"user_id": uid, "is_active": True}).to_list(200)
+    total_assets = round(sum(float(a.get("balance", 0)) for a in accounts if float(a.get("balance", 0)) > 0), 2)
+    total_liabilities = round(abs(sum(float(a.get("balance", 0)) for a in accounts if float(a.get("balance", 0)) < 0)), 2)
+    net_worth = round(total_assets - total_liabilities, 2)
+    await db.financial_profiles.update_one(
+        {"_id": ObjectId(profile_id)},
+        {"$set": {"total_assets": total_assets, "total_liabilities": total_liabilities, "net_worth": net_worth}},
+    )
 
     user_update: dict = {
         "onboarding_complete": True,
         "updated_at": now,
-        "financial_profile_id": str(profile_id) if profile_id else user.get("financial_profile_id"),
+        "financial_profile_id": str(profile_id),
+        "employment_type": body.employment_type,
+        "pay_frequency": body.pay_frequency,
     }
-    if phone_number:
-        user_update["phone_number"] = phone_number
-    if employer_name:
-        user_update["employer_name"] = employer_name
-    if employment_type:
-        user_update["employment_type"] = employment_type
-    if pay_frequency:
-        user_update["pay_frequency"] = pay_frequency
-
+    if body.phone_number:
+        user_update["phone_number"] = body.phone_number
+    if body.employer_name:
+        user_update["employer_name"] = body.employer_name
     await db.users.update_one({"_id": uid}, {"$set": user_update})
+
+    # Mark draft complete to preserve audit trail but stop resume prompts
+    await db.onboarding_sessions.update_one(
+        {"user_id": uid, "status": "draft"},
+        {"$set": {"status": "completed", "completed_at": now, "updated_at": now}},
+    )
 
     return {"status": "ok", "onboarding_complete": True}
 
