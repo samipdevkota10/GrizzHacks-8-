@@ -309,7 +309,7 @@ export interface VirtualCard {
   status: string;
   spending_limit_monthly: number;
   spent_this_month: number;
-  last_known_amount: number;
+  last_known_amount: number | null;
   funding_account_id: string;
   color_scheme: string;
   created_at: string;
@@ -434,7 +434,7 @@ export interface PurchaseCheckResponse {
   currency: string;
   verdict: "GO_FOR_IT" | "THINK_TWICE" | "HOLD_OFF" | "HARD_NO";
   reasoning: string;
-  conversation_id: string;
+  analysis_id: string;
   hours_of_work?: number;
   days_of_work?: number;
   budget_impact_percent?: number;

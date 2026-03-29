@@ -177,8 +177,11 @@ async def get_dashboard(user_id: str):
 
     budget_pulse = build_budget_pulse(month_spent, budget, now)
 
+    safe_user = serialize_doc(user)
+    safe_user.pop("password_hash", None)
+
     return {
-        "user": serialize_doc(user),
+        "user": safe_user,
         "financial_profile": serialize_doc(profile),
         "accounts": serialize_list(accounts),
         "subscriptions": serialize_list(subscriptions),

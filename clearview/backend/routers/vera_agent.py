@@ -46,26 +46,24 @@ async def record_call_result(body: dict):
         raise HTTPException(404, "Fraud alert not found")
 
     now = datetime.utcnow()
-
-    if resolution != "no_answer":
-        await db.fraud_alerts.update_one(
-            {"_id": ObjectId(alert_id)},
-            {"$set": {
-                "status": "resolved",
-                "resolution": resolution,
-                "call_resolved_at": now,
-            }},
-        )
-    else:
-        await db.fraud_alerts.update_one(
-            {"_id": ObjectId(alert_id)},
-            {"$set": {
-                "resolution": resolution,
-                "call_resolved_at": now,
-            }},
-        )
-
     tx_id = alert.get("transaction_id")
+
+    if resolution == "no_answer":
+        await db.fraud_alerts.update_one(
+            {"_id": ObjectId(alert_id)},
+            {"$set": {"resolution": resolution, "last_call_attempt": now}},
+        )
+        return {"message": "No answer recorded. Alert remains open for follow-up."}
+
+    await db.fraud_alerts.update_one(
+        {"_id": ObjectId(alert_id)},
+        {"$set": {
+            "status": "resolved",
+            "resolution": resolution,
+            "call_resolved_at": now,
+        }},
+    )
+
     if resolution == "user_confirmed":
         if tx_id:
             await db.transactions.update_one(
@@ -102,9 +100,6 @@ async def record_call_result(body: dict):
             "created_at": now,
         })
         return {"message": "Transaction denied. Card frozen and flagged for review."}
-
-    else:
-        return {"message": "No answer recorded. Alert remains pending for follow-up."}
 
 
 @router.post("/webhook/approve-transaction")
