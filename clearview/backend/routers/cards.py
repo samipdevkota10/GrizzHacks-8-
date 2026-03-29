@@ -22,7 +22,10 @@ def serialize(doc):
 async def get_cards(user_id: str):
     db = get_database()
     uid = parse_user_object_id(user_id)
-    cards = await db.virtual_cards.find({"user_id": uid}).to_list(50)
+    cards = await db.virtual_cards.find({
+        "user_id": uid,
+        "stripe_card_id": {"$exists": True, "$nin": [None, ""]},
+    }).to_list(50)
     return {"cards": [serialize(c) for c in cards]}
 
 
