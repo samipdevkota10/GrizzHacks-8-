@@ -1,8 +1,10 @@
 from datetime import datetime
 from uuid import uuid4
+import logging
 
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from google.api_core.exceptions import ResourceExhausted
 
 from database import get_database
 from objectid_util import parse_user_object_id
@@ -10,6 +12,7 @@ from services.financial_context import build_financial_context
 from services.gemini_service import gemini_service
 
 router = APIRouter(prefix="/api/advisor", tags=["advisor"])
+logger = logging.getLogger(__name__)
 
 
 def _serialize(doc: dict) -> dict:
@@ -86,8 +89,16 @@ async def purchase_check(image: UploadFile = File(...), user_id: str = Form(...)
 
     uid = parse_user_object_id(user_id)
     image_bytes = await image.read()
+    if len(image_bytes) == 0:
+        raise HTTPException(400, "Uploaded image is empty")
     context = await build_financial_context(user_id)
-    result = await gemini_service.purchase_vision_check(image_bytes, context)
+    try:
+        result = await gemini_service.purchase_vision_check(image_bytes, context)
+    except ResourceExhausted:
+        raise HTTPException(429, "AI rate limit reached. Please wait a minute and try again.")
+    except Exception as exc:
+        logger.exception("purchase_check failed unexpectedly: %s", exc)
+        raise HTTPException(502, "AI service temporarily unavailable. Please retry in a moment.")
 
     db = get_database()
     now = datetime.utcnow()
@@ -139,7 +150,15 @@ async def scan_receipt(image: UploadFile = File(...), user_id: str = Form(...)):
 
     uid = parse_user_object_id(user_id)
     image_bytes = await image.read()
-    result = await gemini_service.scan_receipt(image_bytes)
+    if len(image_bytes) == 0:
+        raise HTTPException(400, "Uploaded image is empty")
+    try:
+        result = await gemini_service.scan_receipt(image_bytes)
+    except ResourceExhausted:
+        raise HTTPException(429, "AI rate limit reached. Please wait a minute and try again.")
+    except Exception as exc:
+        logger.exception("scan_receipt failed unexpectedly: %s", exc)
+        raise HTTPException(502, "Receipt scanner temporarily unavailable. Please retry in a moment.")
 
     db = get_database()
     now = datetime.utcnow()

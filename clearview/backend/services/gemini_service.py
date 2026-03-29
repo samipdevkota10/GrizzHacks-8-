@@ -1,12 +1,34 @@
+import asyncio
 import json
 import logging
+import re
 
 import google.generativeai as genai
+from google.api_core.exceptions import ResourceExhausted, ServiceUnavailable, DeadlineExceeded, GoogleAPICallError
 from config import settings
 
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
 logger = logging.getLogger(__name__)
+
+
+async def _call_with_retry(coro_fn, max_retries: int = 2):
+    """Call a Gemini async function with retry on transient API errors."""
+    for attempt in range(max_retries + 1):
+        try:
+            return await coro_fn()
+        except ResourceExhausted as e:
+            if attempt == max_retries:
+                raise
+            wait = min(2 ** (attempt + 1), 30)
+            logger.warning("Gemini 429 rate-limited, retrying in %ds (attempt %d/%d)", wait, attempt + 1, max_retries)
+            await asyncio.sleep(wait)
+        except (ServiceUnavailable, DeadlineExceeded, GoogleAPICallError) as e:
+            if attempt == max_retries:
+                raise
+            wait = min(2 ** (attempt + 1), 20)
+            logger.warning("Gemini transient error (%s), retrying in %ds (attempt %d/%d)", type(e).__name__, wait, attempt + 1, max_retries)
+            await asyncio.sleep(wait)
 
 SYSTEM_PROMPT_TEMPLATE = '''You are Vera, {user_name}'s personal financial advisor inside the VeraFund app.
 
@@ -115,7 +137,6 @@ def _parse_json_response(text: str) -> dict | None:
     text = text.strip()
 
     # Strip ```json ... ``` fences anywhere in the text
-    import re
     fence_match = re.search(r"```(?:json)?\s*\n?(.*?)```", text, re.DOTALL)
     if fence_match:
         text = fence_match.group(1).strip()
@@ -144,6 +165,29 @@ def _parse_json_response(text: str) -> dict | None:
     return None
 
 
+def _parse_extraction_fallback(text: str) -> dict | None:
+    """
+    Parse backup extraction format:
+      PRODUCT=<name>;PRICE=<number>;CURRENCY=<code>
+    """
+    if not text:
+        return None
+    m_prod = re.search(r"PRODUCT\s*=\s*([^;]+)", text, re.IGNORECASE)
+    m_price = re.search(r"PRICE\s*=\s*([-+]?\d+(?:\.\d+)?)", text, re.IGNORECASE)
+    m_cur = re.search(r"CURRENCY\s*=\s*([A-Z]{3})", text, re.IGNORECASE)
+    if not m_prod or not m_price:
+        return None
+    try:
+        price = float(m_price.group(1))
+    except (TypeError, ValueError):
+        return None
+    return {
+        "product": m_prod.group(1).strip(),
+        "price": price,
+        "currency": (m_cur.group(1).upper() if m_cur else "USD"),
+    }
+
+
 class GeminiService:
     def __init__(self):
         self.model = genai.GenerativeModel(settings.GEMINI_MODEL)
@@ -166,7 +210,7 @@ class GeminiService:
 
         response = await self.model.generate_content_async(
             contents,
-            generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=500),
+            generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=2048),
         )
         return response.text
 
@@ -176,19 +220,36 @@ class GeminiService:
 
         image = PIL.Image.open(io.BytesIO(image_bytes))
 
-        extraction_response = await self.vision_model.generate_content_async(
+        extraction_response = await _call_with_retry(lambda: self.vision_model.generate_content_async(
             [VISION_EXTRACTION_PROMPT, image],
             generation_config=genai.GenerationConfig(
                 temperature=0.1,
-                max_output_tokens=300,
+                max_output_tokens=2048,
                 response_mime_type="application/json",
             ),
-        )
+        ))
 
         extracted = _parse_json_response(extraction_response.text)
         if not extracted:
             logger.warning("Vision extraction failed to parse: %s", extraction_response.text[:300])
-            extracted = {"product": "Unknown Product", "price": 0.0, "currency": "USD"}
+            # Fallback pass: ask for a strict key=value one-liner and parse it.
+            fallback_response = await _call_with_retry(lambda: self.vision_model.generate_content_async(
+                [
+                    (
+                        "From this image, identify the main product and its visible price. "
+                        "Return EXACTLY one line in this format with no extra text: "
+                        "PRODUCT=<name>;PRICE=<number>;CURRENCY=USD"
+                    ),
+                    image,
+                ],
+                generation_config=genai.GenerationConfig(
+                    temperature=0.0,
+                    max_output_tokens=128,
+                ),
+            ))
+            extracted = _parse_extraction_fallback((fallback_response.text or "").strip())
+            if not extracted:
+                extracted = {"product": "Unknown Product", "price": 0.0, "currency": "USD"}
 
         product = extracted.get("product") or "Unknown Product"
         raw_price = extracted.get("price", 0)
@@ -224,7 +285,7 @@ class GeminiService:
         )
 
         system = SYSTEM_PROMPT_TEMPLATE.format(**context)
-        advice_response = await self.model.generate_content_async(
+        advice_response = await _call_with_retry(lambda: self.model.generate_content_async(
             [
                 {"role": "user", "parts": [{"text": system}]},
                 {"role": "model", "parts": [{"text": "Ready to evaluate this purchase with the user's real financial data."}]},
@@ -232,10 +293,10 @@ class GeminiService:
             ],
             generation_config=genai.GenerationConfig(
                 temperature=0.3,
-                max_output_tokens=1000,
+                max_output_tokens=4096,
                 response_mime_type="application/json",
             ),
-        )
+        ))
 
         analysis = _parse_json_response(advice_response.text)
 
@@ -270,14 +331,14 @@ class GeminiService:
 
         image = PIL.Image.open(io.BytesIO(image_bytes))
 
-        response = await self.vision_model.generate_content_async(
+        response = await _call_with_retry(lambda: self.vision_model.generate_content_async(
             [RECEIPT_SCAN_PROMPT, image],
             generation_config=genai.GenerationConfig(
                 temperature=0.1,
-                max_output_tokens=1200,
+                max_output_tokens=4096,
                 response_mime_type="application/json",
             ),
-        )
+        ))
 
         result = _parse_json_response(response.text)
         if not result:
@@ -322,7 +383,7 @@ Rules: Mention the dollar amount and merchant name in opening_line. Stay under 4
                 prompt,
                 generation_config=genai.GenerationConfig(
                     temperature=0.2,
-                    max_output_tokens=400,
+                    max_output_tokens=2048,
                     response_mime_type="application/json",
                 ),
             )
