@@ -93,8 +93,8 @@ export default function DashboardOverview() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      <div className="flex items-center justify-center h-64" suppressHydrationWarning>
+        <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin" suppressHydrationWarning />
       </div>
     );
   }
@@ -115,7 +115,7 @@ export default function DashboardOverview() {
     total_assets?: number;
     total_liabilities?: number;
     savings_goal_monthly?: number;
-    financial_goals?: { name: string; target: number; current: number; icon?: string }[];
+    financial_goals?: { name: string; target_amount: number; current_amount: number; icon?: string }[];
     category_budgets?: Record<string, number>;
   } | null;
 
@@ -347,7 +347,9 @@ export default function DashboardOverview() {
           {financialGoals.length > 0 ? (
             <div className="space-y-4">
               {financialGoals.map((goal) => {
-                const pct = goal.target > 0 ? Math.round((goal.current / goal.target) * 100) : 0;
+                const current = goal.current_amount ?? 0;
+                const target = goal.target_amount ?? 0;
+                const pct = target > 0 ? Math.min(100, Math.round((current / target) * 100)) : 0;
                 const GoalIcon = GOAL_ICON_MAP[goal.icon || "Target"] || Target;
                 return (
                   <div key={goal.name}>
@@ -360,8 +362,8 @@ export default function DashboardOverview() {
                       <div className="h-full rounded-full bg-primary transition-all duration-700" style={{ width: `${pct}%` }} />
                     </div>
                     <div className="flex justify-between mt-1">
-                      <span className="text-xs text-muted-foreground tabular-nums">${goal.current.toLocaleString()}</span>
-                      <span className="text-xs text-muted-foreground tabular-nums">${goal.target.toLocaleString()}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">${current.toLocaleString()}</span>
+                      <span className="text-xs text-muted-foreground tabular-nums">${target.toLocaleString()}</span>
                     </div>
                   </div>
                 );
@@ -382,8 +384,8 @@ export default function DashboardOverview() {
               <div key={bill.name} className="flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-muted/50 transition-colors">
                 <div>
                   <p className="text-sm font-medium text-foreground">{bill.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    Due {new Date(bill.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+                  <p className="text-xs text-muted-foreground" suppressHydrationWarning>
+                    Due {bill.date ? new Date(bill.date).toLocaleDateString("en-US", { month: "short", day: "numeric" }) : ""}
                   </p>
                 </div>
                 <div className="text-right">

@@ -101,18 +101,18 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
         </nav>
 
-        <div className="p-4 border-t border-border">
-          <div className="flex items-center gap-3 px-2 mb-3">
+        <div className="p-4 border-t border-border" suppressHydrationWarning>
+          <div className="flex items-center gap-3 px-2 mb-3" suppressHydrationWarning>
             {user?.avatar_url ? (
               <img src={user.avatar_url} alt={user.name} className="w-9 h-9 rounded-full object-cover" />
             ) : (
-              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+              <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm" suppressHydrationWarning>
                 {user?.name?.charAt(0) || "U"}
               </div>
             )}
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-foreground truncate">{user?.name || "Loading..."}</p>
-              <p className="text-xs text-muted-foreground truncate">{user?.email || ""}</p>
+            <div className="flex-1 min-w-0" suppressHydrationWarning>
+              <p className="text-sm font-medium text-foreground truncate" suppressHydrationWarning>{user?.name || "Loading..."}</p>
+              <p className="text-xs text-muted-foreground truncate" suppressHydrationWarning>{user?.email || ""}</p>
             </div>
           </div>
           <button
@@ -126,10 +126,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       </aside>
 
       {/* Main content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden" suppressHydrationWarning>
         {/* Top bar */}
         <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 flex-shrink-0">
-          <div className="relative w-72">
+          <div className="relative w-72" suppressHydrationWarning>
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
@@ -137,7 +137,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               className="w-full rounded-xl bg-background border border-border pl-9 pr-4 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
             />
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4" suppressHydrationWarning>
             <button className="relative w-9 h-9 rounded-xl bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
               <Bell size={16} />
               {alertCount > 0 && (
