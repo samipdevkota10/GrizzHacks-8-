@@ -7,7 +7,6 @@ import {
   getUserId,
   clearAuth,
   fetchDashboard,
-  type DashboardData,
   type Subscription,
   type UpcomingBill,
 } from "@/lib/api";

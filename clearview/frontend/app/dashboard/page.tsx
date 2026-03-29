@@ -8,7 +8,6 @@ import {
   PiggyBank,
   ArrowDownLeft,
   ArrowUpRight,
-  DollarSign,
   Shield,
   Plane,
   GraduationCap,
@@ -34,7 +33,6 @@ import {
   postDashboardEvent,
   fetchMonthlyTrend,
   type DashboardData,
-  type UpcomingBill,
   type ActionItem,
 } from "@/lib/api";
 import { DailySnapshotBanner } from "@/components/dashboard/DailySnapshotBanner";

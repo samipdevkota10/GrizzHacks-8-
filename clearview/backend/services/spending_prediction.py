@@ -91,7 +91,10 @@ async def cash_flow_forecast(user_id: ObjectId) -> dict:
 
     pay_frequency = profile.get("pay_frequency", "biweekly") if profile else "biweekly"
     last_pay = profile.get("last_pay_date", now) if profile else now
-    pay_amount = 1200.0  # net bi-weekly paycheck
+    hourly = profile.get("hourly_rate", 20.0) if profile else 20.0
+    tax = profile.get("tax_rate", 0.18) if profile else 0.18
+    hours_per_week = 30
+    pay_amount = round(hourly * hours_per_week * 2 * (1 - tax), 2)
 
     # Get upcoming subscriptions/bills
     subs = await db.subscriptions.find({
@@ -112,6 +115,15 @@ async def cash_flow_forecast(user_id: ObjectId) -> dict:
         if not tx.get("is_recurring"):
             daily_non_recurring += abs(tx["amount"])
     daily_non_recurring = daily_non_recurring / 14 if recent_txns else 50.0
+
+    rent_tx = await db.transactions.find_one({
+        "user_id": user_id,
+        "is_recurring": True,
+        "category": "utilities",
+        "amount": {"$lt": -100},
+        "merchant_name": {"$regex": "rent", "$options": "i"},
+    })
+    rent_amount = abs(rent_tx["amount"]) if rent_tx else 0
 
     # Build daily forecast
     balance = current_balance
@@ -153,10 +165,9 @@ async def cash_flow_forecast(user_id: ObjectId) -> dict:
                 balance -= sub.get("amount", 0)
                 event = event or f"{sub.get('name', 'Bill')} -${sub.get('amount', 0):.2f}"
 
-        # Check for rent on the 1st
-        if day_start.day == 1 and day_offset > 0:
-            balance -= 875.0
-            event = event or "Rent -$875"
+        if day_start.day == 1 and day_offset > 0 and rent_amount > 0:
+            balance -= rent_amount
+            event = event or f"Rent -${rent_amount:,.0f}"
 
         # Subtract estimated daily spend (weekdays cost more)
         if day_start.weekday() < 5:

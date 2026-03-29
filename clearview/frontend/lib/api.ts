@@ -432,9 +432,17 @@ export interface PurchaseCheckResponse {
   product: string;
   price: number;
   currency: string;
-  verdict: "yes" | "no" | "careful";
+  verdict: "GO_FOR_IT" | "THINK_TWICE" | "HOLD_OFF" | "HARD_NO";
   reasoning: string;
   conversation_id: string;
+  hours_of_work?: number;
+  days_of_work?: number;
+  budget_impact_percent?: number;
+  category_context?: string;
+  goal_delays?: { goal: string; delay: string }[];
+  alternatives?: { name: string; price: number; reason: string }[];
+  total_cost_note?: string | null;
+  thirty_day_suggestion?: boolean;
 }
 
 export function purchaseCheck(
@@ -692,4 +700,14 @@ export async function createVoiceSession(userId: string): Promise<VoiceSessionRe
     throw new Error(msg);
   }
   return data as unknown as VoiceSessionResponse;
+}
+
+// ── Profile ──────────────────────────────────────────────────
+
+export function fetchProfile(): Promise<Record<string, unknown>> {
+  return get("/api/auth/profile");
+}
+
+export function updateProfile(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
+  return patch("/api/auth/profile", payload);
 }

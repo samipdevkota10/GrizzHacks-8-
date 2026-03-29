@@ -46,12 +46,12 @@ async def build_financial_context(user_id: str) -> dict:
             upcoming_bills.append(f"  - {s['name']}: ${s['amount']:.2f} on {s['next_billing_date'].strftime('%b %d')}")
             bills_total += s["amount"]
     
-    budget = profile["monthly_budget"] if profile else 3500
+    budget = profile["monthly_budget"] if profile else 2000
     discretionary = budget - month_spent
-    monthly_income = profile.get("monthly_income", 4800) if profile else 4800
+    monthly_income = profile.get("monthly_income", 2600) if profile else 2600
     monthly_savings = max(0, monthly_income - month_spent)
-    hourly_rate = profile.get("hourly_rate", monthly_income / 160) if profile else 30.0
-    tax_rate = profile.get("tax_rate", 0.22) if profile else 0.22
+    hourly_rate = profile.get("hourly_rate", 20.0) if profile else 20.0
+    tax_rate = profile.get("tax_rate", 0.18) if profile else 0.18
     net_hourly_rate = hourly_rate * (1 - tax_rate)
     financial_goals = profile.get("financial_goals", []) if profile else []
     category_budgets = profile.get("category_budgets", {}) if profile else {}

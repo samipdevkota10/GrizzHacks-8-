@@ -108,16 +108,11 @@ async def get_dashboard(user_id: str):
                     }
                 )
 
-    budget = profile["monthly_budget"] if profile else 3500
-    monthly_income = profile.get("monthly_income", 4800) if profile else 4800
+    budget = profile["monthly_budget"] if profile else 2000
+    monthly_income = profile.get("monthly_income", 2600) if profile else 2600
     savings_goal = profile.get("savings_goal_monthly", 0) if profile else 0
     net_worth = profile["net_worth"] if profile else 0
 
-    days_in_month = (
-        (now.replace(month=now.month % 12 + 1, day=1) - timedelta(days=1)).day
-        if now.month < 12
-        else 31
-    )
     days_passed = now.day
     avg_daily = month_spent / max(days_passed, 1)
     top_category = max(by_category.items(), key=lambda x: x[1]) if by_category else ("none", 0)
@@ -138,6 +133,7 @@ async def get_dashboard(user_id: str):
     )
     nw_30d_ago = old_snapshot["net_worth"] if old_snapshot else net_worth
     income_30d_ago = old_snapshot.get("month_income", 0) if old_snapshot else 0
+    spent_30d_ago = old_snapshot.get("month_spent", 0) if old_snapshot else 0
 
     # Save today's snapshot (idempotent per day)
     today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
@@ -163,6 +159,7 @@ async def get_dashboard(user_id: str):
         monthly_budget=budget,
         month_income=month_income,
         month_income_30d_ago=income_30d_ago,
+        month_spent_30d_ago=spent_30d_ago,
         user_name=user_name,
     )
 

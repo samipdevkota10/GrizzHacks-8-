@@ -287,12 +287,11 @@ def build_daily_snapshot(
     monthly_budget: float,
     month_income: float,
     month_income_30d_ago: float,
+    month_spent_30d_ago: float = 0,
     user_name: str,
 ) -> dict[str, Any]:
     nw_delta = net_worth - net_worth_30d_ago
-    cashflow_delta = (month_income - month_spent) - (
-        month_income_30d_ago - 0
-    )
+    cashflow_delta = (month_income - month_spent) - (month_income_30d_ago - month_spent_30d_ago)
 
     budget_pct = month_spent / monthly_budget if monthly_budget > 0 else 0
     if budget_pct > 0.9:

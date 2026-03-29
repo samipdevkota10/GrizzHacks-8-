@@ -3,7 +3,6 @@
 import re
 from datetime import datetime, timedelta
 
-from bson import ObjectId
 from fastapi import APIRouter
 
 from database import get_database

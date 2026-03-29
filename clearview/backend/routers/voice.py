@@ -15,7 +15,6 @@ router = APIRouter(prefix="/api/voice", tags=["voice"])
 @router.post("/tts")
 async def text_to_speech(body: dict):
     text = body.get("text", "")
-    user_id = body.get("user_id")
     if not text:
         raise HTTPException(400, "text is required")
 

@@ -212,7 +212,7 @@ class GeminiService:
             contents,
             generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=2048),
         )
-        return response.text
+        return response.text or "I'm having trouble processing that right now. Could you rephrase?"
 
     async def purchase_vision_check(self, image_bytes: bytes, context: dict) -> dict:
         import PIL.Image
@@ -272,9 +272,9 @@ class GeminiService:
             user_name=context.get("user_name", "there"),
             product=product,
             price=price,
-            net_hourly_rate=context.get("net_hourly_rate", 23.4),
+            net_hourly_rate=context.get("net_hourly_rate", 16.4),
             discretionary_remaining=context.get("discretionary_remaining", 0),
-            monthly_budget=context.get("monthly_budget", 3500),
+            monthly_budget=context.get("monthly_budget", 2000),
             month_spent=context.get("month_spent", 0),
             checking_balance=context.get("checking_balance", 0),
             monthly_savings=context.get("monthly_savings", 0),
@@ -303,7 +303,7 @@ class GeminiService:
         if not analysis:
             logger.warning("Purchase analysis parse failed: %s", advice_response.text[:300])
             reasoning = "Vera couldn't fully analyze this purchase. Please try again with a clearer product image."
-            net_hr = context.get("net_hourly_rate", 23.4)
+            net_hr = context.get("net_hourly_rate", 16.4)
             hours = round(price / net_hr, 1) if net_hr > 0 else 0
             analysis = {
                 "verdict": "THINK_TWICE",

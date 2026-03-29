@@ -12,7 +12,6 @@ export default function VoiceChat() {
   const [error, setError] = useState("");
   const [isMuted, setIsMuted] = useState(false);
   const [elapsedSec, setElapsedSec] = useState(0);
-  const [conversationDbId, setConversationDbId] = useState("");
   const convRef = useRef<Awaited<ReturnType<typeof Conversation.startSession>> | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startTimeRef = useRef<number>(0);
@@ -52,7 +51,6 @@ export default function VoiceChat() {
 
     try {
       const session = await createVoiceSession(uid);
-      setConversationDbId(session.conversation_id);
 
       const conversation = await Conversation.startSession({
         signedUrl: session.signed_url,

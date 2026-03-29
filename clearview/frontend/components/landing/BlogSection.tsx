@@ -66,8 +66,6 @@ const BlogSection = () => {
               animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: i * 0.15 + 0.2 }}
               className="group cursor-pointer"
-              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              role="link"
               tabIndex={0}
             >
               <div className="rounded-2xl overflow-hidden mb-4">

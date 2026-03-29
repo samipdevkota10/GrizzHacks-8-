@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import {
   Camera,
-  Upload,
   Clock,
   DollarSign,
   AlertTriangle,
@@ -16,7 +15,6 @@ import {
   Trash2,
   ShieldCheck,
   ShieldAlert,
-  ShieldX,
   Ban,
   Lightbulb,
   Target,

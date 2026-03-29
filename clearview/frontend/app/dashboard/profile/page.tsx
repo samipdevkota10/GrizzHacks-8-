@@ -15,9 +15,7 @@ import {
   X,
   RefreshCw,
 } from "lucide-react";
-import { getToken, getUserId } from "@/lib/api";
-
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
+import { getToken, getUserId, fetchProfile, updateProfile } from "@/lib/api";
 
 interface FinancialGoal {
   name: string;
@@ -91,16 +89,9 @@ export default function ProfilePage() {
       window.location.href = "/auth";
       return;
     }
-    fetch(`${API_URL}/api/auth/profile`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => {
-        if (!r.ok) {
-          throw new Error("Failed to fetch profile");
-        }
-        return r.json();
-      })
-      .then((d: Partial<ProfileData>) => {
+    fetchProfile()
+      .then((raw) => {
+        const d = raw as unknown as Partial<ProfileData>;
         const user = d?.user ?? ({} as ProfileData["user"]);
         const fp = d?.financial_profile ?? ({} as ProfileData["financial_profile"]);
         const normalized: ProfileData = {
@@ -117,7 +108,7 @@ export default function ProfilePage() {
         setMonthlyBudget(String(fp.monthly_budget ?? ""));
         setSavingsGoal(String(fp.savings_goal_monthly ?? ""));
         setHourlyRate(String(fp.hourly_rate ?? ""));
-        setTaxRate(String(Math.round((fp.tax_rate ?? 0.22) * 100)));
+        setTaxRate(String(Math.round((fp.tax_rate ?? 0.18) * 100)));
         setGoals(fp.financial_goals || []);
       })
       .catch(() => setError("Failed to load profile"))
@@ -125,31 +116,21 @@ export default function ProfilePage() {
   }, []);
 
   const save = async () => {
-    const token = getToken();
-    if (!token) return;
     setSaving(true);
     setError("");
     setSaved(false);
     try {
-      const res = await fetch(`${API_URL}/api/auth/profile`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          name,
-          phone_number: phone,
-          vera_name: veraName,
-          monthly_income: parseFloat(monthlyIncome) || 0,
-          monthly_budget: parseFloat(monthlyBudget) || 0,
-          savings_goal_monthly: parseFloat(savingsGoal) || 0,
-          hourly_rate: parseFloat(hourlyRate) || 0,
-          tax_rate: (parseFloat(taxRate) || 22) / 100,
-          financial_goals: goals,
-        }),
+      await updateProfile({
+        name,
+        phone_number: phone,
+        vera_name: veraName,
+        monthly_income: parseFloat(monthlyIncome) || 0,
+        monthly_budget: parseFloat(monthlyBudget) || 0,
+        savings_goal_monthly: parseFloat(savingsGoal) || 0,
+        hourly_rate: parseFloat(hourlyRate) || 0,
+        tax_rate: (parseFloat(taxRate) || 22) / 100,
+        financial_goals: goals,
       });
-      if (!res.ok) throw new Error("Save failed");
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch {
@@ -299,14 +280,14 @@ export default function ProfilePage() {
             <label className="text-xs text-muted-foreground mb-1.5 block">Monthly Income</label>
             <div className="relative">
               <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input type="number" value={monthlyIncome} onChange={(e) => setMonthlyIncome(e.target.value)} className={`${inputCls} pl-9`} placeholder="4800" />
+              <input type="number" value={monthlyIncome} onChange={(e) => setMonthlyIncome(e.target.value)} className={`${inputCls} pl-9`} placeholder="2600" />
             </div>
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Monthly Budget</label>
             <div className="relative">
               <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input type="number" value={monthlyBudget} onChange={(e) => setMonthlyBudget(e.target.value)} className={`${inputCls} pl-9`} placeholder="3500" />
+              <input type="number" value={monthlyBudget} onChange={(e) => setMonthlyBudget(e.target.value)} className={`${inputCls} pl-9`} placeholder="2000" />
             </div>
           </div>
           <div>
@@ -320,14 +301,14 @@ export default function ProfilePage() {
             <label className="text-xs text-muted-foreground mb-1.5 block">Hourly Rate (after tax)</label>
             <div className="relative">
               <DollarSign size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input type="number" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} className={`${inputCls} pl-9`} placeholder="30" />
+              <input type="number" value={hourlyRate} onChange={(e) => setHourlyRate(e.target.value)} className={`${inputCls} pl-9`} placeholder="20" />
             </div>
           </div>
           <div>
             <label className="text-xs text-muted-foreground mb-1.5 block">Tax Rate (%)</label>
             <div className="relative">
               <Briefcase size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-              <input type="number" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} className={`${inputCls} pl-9`} placeholder="22" min="0" max="60" />
+              <input type="number" value={taxRate} onChange={(e) => setTaxRate(e.target.value)} className={`${inputCls} pl-9`} placeholder="18" min="0" max="60" />
             </div>
           </div>
         </div>

@@ -36,8 +36,6 @@ export function CardOptimizerWidget() {
 
   if (!digest || digest.details.length === 0) return null;
 
-  const topTip = digest.details[0];
-
   return (
     <div className="rounded-2xl bg-card border border-border p-5">
       <div className="flex items-center justify-between mb-4">
