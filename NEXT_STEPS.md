@@ -133,6 +133,8 @@ To implement, you would need:
 4. Add env var: `NEXT_PUBLIC_API_URL=https://your-backend-url.railway.app` (**no trailing slash** — a `/` at the end makes `//api/...` URLs that return **404**)
 5. Deploy
 
+**Vercel preview URLs** (e.g. `https://grizz-hacks-8-….vercel.app`) are allowed by the backend’s default `CORS_ORIGIN_REGEX` for `*.vercel.app`. Production `https://grizz-hacks-8.vercel.app` is also listed explicitly. Redeploy the **Railway backend** after pulling the latest `main` if previews still show CORS errors.
+
 #### Backend on Railway
 1. Go to https://railway.app, connect GitHub
 2. Create a **service** from this repo and set **Root Directory** to `clearview/backend` (critical for Python + `requirements.txt`).

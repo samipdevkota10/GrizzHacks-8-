@@ -9,13 +9,16 @@ _logger = logging.getLogger(__name__)
 settings = Settings()
 app = FastAPI(title="VeraFund API", version="1.0.0")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.cors_allow_origins(),
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+_cors_kwargs: dict = {
+    "allow_origins": settings.cors_allow_origins(),
+    "allow_credentials": True,
+    "allow_methods": ["*"],
+    "allow_headers": ["*"],
+}
+if settings.CORS_ORIGIN_REGEX.strip():
+    _cors_kwargs["allow_origin_regex"] = settings.CORS_ORIGIN_REGEX.strip()
+
+app.add_middleware(CORSMiddleware, **_cors_kwargs)
 
 from routers import dashboard
 

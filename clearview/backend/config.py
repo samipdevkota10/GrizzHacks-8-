@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # Comma-separated browser origins for CORS (e.g. Vercel prod + previews).
     # If empty, allows FRONTEND_URL plus local dev URLs below.
     CORS_ORIGINS: str = ""
+    # Also allow any origin matching this regex (Vercel preview deploys use unique subdomains).
+    # Set to empty in env to disable: CORS_ORIGIN_REGEX=
+    CORS_ORIGIN_REGEX: str = r"https://.*\.vercel\.app$"
 
     ELEVENLABS_PHONE_NUMBER_ID: str = ""
     USER_PHONE_NUMBER: str = ""
