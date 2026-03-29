@@ -45,13 +45,17 @@ class Settings(BaseSettings):
     )
 
     def cors_allow_origins(self) -> list[str]:
+        # Always include both known production URLs regardless of env configuration
+        # so Railway deployments work even when FRONTEND_URL is wrong or missing.
         items = [
-            self.FRONTEND_URL.strip(),
+            "https://grizz-hacks-8.vercel.app",
+            self.FRONTEND_URL.strip().rstrip("/"),  # strip trailing slash — browsers never send it
             "http://localhost:3000",
             "http://localhost:3001",
+            "http://localhost:3002",
         ]
         if self.CORS_ORIGINS.strip():
-            items.extend(o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip())
+            items.extend(o.strip().rstrip("/") for o in self.CORS_ORIGINS.split(",") if o.strip())
         seen: set[str] = set()
         out: list[str] = []
         for o in items:

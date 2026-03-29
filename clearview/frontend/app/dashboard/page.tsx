@@ -166,9 +166,19 @@ export default function DashboardOverview() {
       .then((res) => setMonthlyTrend(res.trend))
       .catch(() => {});
 
-    // Poll fraud alerts every 6 seconds to pick up call status changes live
-    pollRef.current = setInterval(() => refreshFraudAlerts(uid), 6000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    // Poll fraud alerts every 8 seconds (only when tab is visible) to pick up call status changes live
+    const startPoll = () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(() => {
+        if (!document.hidden) refreshFraudAlerts(uid);
+      }, 8000);
+    };
+    startPoll();
+    document.addEventListener("visibilitychange", startPoll);
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      document.removeEventListener("visibilitychange", startPoll);
+    };
   }, [refreshFraudAlerts]);
 
   const handleTestFraud = async () => {

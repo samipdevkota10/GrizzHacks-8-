@@ -45,8 +45,8 @@ export default function TransactionsPage() {
 
     load().finally(() => setLoading(false));
 
-    // Auto-refresh every 8s so fraud denial → BLOCKED updates without manual reload
-    pollRef.current = setInterval(load, 8000);
+    // Auto-refresh every 10s (only when tab visible) so BLOCKED badge appears after fraud denial
+    pollRef.current = setInterval(() => { if (!document.hidden) load(); }, 10000);
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
