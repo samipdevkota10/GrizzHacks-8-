@@ -349,9 +349,22 @@ async def start_advisor_call(body: dict):
         logger.exception("Advisor call failed: %s", exc)
         raise HTTPException(502, f"Could not initiate call: {exc}")
 
-    if not result.get("success") and not result.get("mock"):
-        error = result.get("error", "Unknown error")
-        raise HTTPException(400, error)
+    if not result.get("success"):
+        code = result.get("error_code", "CALL_FAILED")
+        if result.get("mock"):
+            status_code = 503
+        elif code == "INVALID_PHONE" or code == "NO_PHONE":
+            status_code = 400
+        else:
+            status_code = 502
+        raise HTTPException(
+            status_code=status_code,
+            detail={
+                "message": result.get("error", "Call failed"),
+                "code": code,
+                "hint": result.get("hint"),
+            },
+        )
 
     return result
 

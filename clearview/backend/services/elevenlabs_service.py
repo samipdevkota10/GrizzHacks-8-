@@ -1,9 +1,33 @@
 import logging
 import base64
+import re
 import httpx
 from config import settings
 
 logger = logging.getLogger(__name__)
+
+
+def normalize_phone_e164(phone: str | None) -> str | None:
+    """Normalize stored phone numbers to E.164 for Twilio / ElevenLabs.
+
+    Accepts formats like +15551234567, (555) 123-0123, 555-123-0123, 15551230123.
+    Returns None if there are not enough digits."""
+    if not phone or not str(phone).strip():
+        return None
+    raw = str(phone).strip()
+    if raw.startswith("+"):
+        digits = re.sub(r"\D", "", raw[1:])
+        if len(digits) >= 10:
+            return "+" + digits
+        return None
+    digits = re.sub(r"\D", "", raw)
+    if len(digits) == 10:
+        return "+1" + digits
+    if len(digits) == 11 and digits.startswith("1"):
+        return "+" + digits
+    if len(digits) >= 10:
+        return "+" + digits
+    return None
 
 
 class ElevenLabsService:
@@ -88,6 +112,19 @@ class ElevenLabsService:
         Returns the ElevenLabs response containing ``conversation_id``
         and ``callSid``, or a mock dict if credentials are missing.
         """
+        normalized = normalize_phone_e164(to_number)
+        if not normalized:
+            logger.warning("Invalid phone number for outbound call: %r", to_number)
+            return {
+                "success": False,
+                "message": (
+                    "Invalid phone number. Save a valid number in your profile "
+                    "(E.164 preferred, e.g. +15551234567)."
+                ),
+                "mock": False,
+                "invalid_phone": True,
+            }
+
         if not self.can_make_calls:
             logger.warning("ElevenLabs outbound call skipped — missing credentials")
             return {
@@ -113,24 +150,60 @@ class ElevenLabsService:
         payload = {
             "agent_id": self.agent_id,
             "agent_phone_number_id": self.phone_number_id,
-            "to_number": to_number,
+            "to_number": normalized,
             "conversation_initiation_client_data": client_data,
         }
 
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                f"{self.BASE_URL}/convai/twilio/outbound-call",
-                headers={
-                    "xi-api-key": self.api_key,
-                    "Content-Type": "application/json",
-                },
-                json=payload,
-                timeout=15.0,
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(
+                    f"{self.BASE_URL}/convai/twilio/outbound-call",
+                    headers={
+                        "xi-api-key": self.api_key,
+                        "Content-Type": "application/json",
+                    },
+                    json=payload,
+                    timeout=30.0,
+                )
+        except httpx.RequestError as exc:
+            logger.exception("ElevenLabs outbound network error: %s", exc)
+            return {
+                "success": False,
+                "message": f"Could not reach ElevenLabs: {exc!s}",
+                "mock": False,
+            }
+
+        if response.status_code >= 400:
+            try:
+                err_body = response.json()
+                msg = err_body.get("detail") or err_body.get("message") or str(err_body)
+            except Exception:
+                msg = (response.text or "")[:500] or f"HTTP {response.status_code}"
+            logger.warning(
+                "ElevenLabs outbound HTTP %s: %s",
+                response.status_code,
+                msg,
             )
-            response.raise_for_status()
+            return {
+                "success": False,
+                "message": str(msg),
+                "status_code": response.status_code,
+                "mock": False,
+            }
+
+        try:
             data = response.json()
-            logger.info("Outbound call initiated: %s", data)
-            return data
+        except Exception as exc:
+            logger.warning("ElevenLabs outbound: invalid JSON body: %s", exc)
+            return {
+                "success": False,
+                "message": "Invalid response from ElevenLabs",
+                "mock": False,
+            }
+
+        logger.info("Outbound call initiated: %s", data)
+        data.setdefault("success", True)
+        return data
 
 
 elevenlabs_service = ElevenLabsService()

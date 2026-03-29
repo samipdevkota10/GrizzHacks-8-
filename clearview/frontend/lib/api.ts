@@ -219,6 +219,20 @@ export interface BillRisk {
   at_risk_bills: { name: string; amount: number; date: string }[];
 }
 
+export interface AppNotification {
+  _id: string;
+  user_id: string;
+  type: string;
+  title: string;
+  message: string;
+  is_read: boolean;
+  action_url?: string | null;
+  related_entity_type?: string | null;
+  related_entity_id?: string | null;
+  created_at: string;
+  read_at?: string | null;
+}
+
 export interface DashboardData {
   user: Record<string, unknown>;
   financial_profile: Record<string, unknown> | null;
@@ -227,7 +241,7 @@ export interface DashboardData {
   recent_transactions: Transaction[];
   virtual_cards: VirtualCard[];
   pending_alerts: Record<string, unknown>[];
-  notifications: Record<string, unknown>[];
+  notifications: AppNotification[];
   monthly_summary: MonthlySummary;
   upcoming_bills: UpcomingBill[];
   quick_stats: QuickStats;
@@ -379,6 +393,23 @@ export function fetchAlerts(userId: string): Promise<{ alerts: Record<string, un
   return get<{ alerts: Record<string, unknown>[] }>(`/api/alerts/${userId}`);
 }
 
+export function fetchNotifications(
+  userId: string,
+  unreadOnly = false,
+): Promise<{ notifications: AppNotification[] }> {
+  return get<{ notifications: AppNotification[] }>(
+    `/api/notifications/${userId}?unread_only=${unreadOnly}&limit=30`,
+  );
+}
+
+export function markNotificationRead(notificationId: string): Promise<{ status: string }> {
+  return patch<{ status: string }>(`/api/notifications/${notificationId}/read`);
+}
+
+export function markAllNotificationsRead(userId: string): Promise<{ status: string; marked: number }> {
+  return post<{ status: string; marked: number }>("/api/notifications/mark-all-read", { user_id: userId });
+}
+
 // ── Advisor ──────────────────────────────────────────────────
 export interface ChatResponse {
   response: string;
@@ -453,8 +484,36 @@ export interface StartCallResponse {
   mock: boolean;
 }
 
-export function startAdvisorCall(userId: string): Promise<StartCallResponse> {
-  return post<StartCallResponse>("/api/advisor/call/start", { user_id: userId });
+/** Parse FastAPI HTTPException detail (string or { message, hint, code }). */
+function extractFastApiErrorMessage(data: unknown): string {
+  if (!data || typeof data !== "object") return "";
+  const d = data as { detail?: unknown };
+  const det = d.detail;
+  if (typeof det === "string") return det;
+  if (det && typeof det === "object") {
+    const o = det as { message?: string; hint?: string };
+    if (o.message && o.hint) return `${o.message} ${o.hint}`;
+    if (o.message) return o.message;
+    if (o.hint) return o.hint;
+  }
+  return "";
+}
+
+export async function startAdvisorCall(userId: string): Promise<StartCallResponse> {
+  const res = await fetch(`${API_URL}/api/advisor/call/start`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...authHeaders() },
+    body: JSON.stringify({ user_id: userId }),
+  });
+  const data = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+  if (!res.ok) {
+    const msg =
+      extractFastApiErrorMessage(data) ||
+      (typeof data.detail === "string" ? data.detail : "") ||
+      `Could not start call (${res.status})`;
+    throw new Error(msg);
+  }
+  return data as unknown as StartCallResponse;
 }
 
 export function submitAdvisorCallResult(payload: {

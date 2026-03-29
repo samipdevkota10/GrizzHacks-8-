@@ -6,13 +6,11 @@ full financial snapshot."""
 
 import logging
 from datetime import datetime
-from uuid import uuid4
-
 from bson import ObjectId
 
 from database import get_database
 from objectid_util import parse_user_object_id
-from services.elevenlabs_service import elevenlabs_service
+from services.elevenlabs_service import elevenlabs_service, normalize_phone_e164
 from services.financial_context import build_financial_context
 
 logger = logging.getLogger(__name__)
@@ -91,12 +89,20 @@ async def initiate_advisor_call(user_id: str) -> dict:
 
     user = await db.users.find_one({"_id": uid})
     if not user:
-        return {"success": False, "error": "User not found"}
+        return {"success": False, "error": "User not found", "error_code": "USER_NOT_FOUND"}
 
     from config import settings
     phone = user.get("phone_number") or settings.USER_PHONE_NUMBER
     if not phone:
-        return {"success": False, "error": "No phone number on file"}
+        return {"success": False, "error": "No phone number on file", "error_code": "NO_PHONE"}
+
+    normalized_phone = normalize_phone_e164(phone)
+    if not normalized_phone:
+        return {
+            "success": False,
+            "error": "Phone number could not be normalized to E.164. Update your profile with a valid number (e.g. +15551234567).",
+            "error_code": "INVALID_PHONE",
+        }
 
     context = await build_financial_context(user_id)
     user_name = context.get("user_name", "there")
@@ -144,11 +150,51 @@ async def initiate_advisor_call(user_id: str) -> dict:
         dynamic_variables=dynamic_variables,
     )
 
+    phone_last4 = normalized_phone[-4:] if len(normalized_phone) >= 4 else normalized_phone
+
+    if call_result.get("mock"):
+        logger.warning("Advisor outbound skipped (mock) for user %s", user_id)
+        return {
+            "success": False,
+            "mock": True,
+            "error": call_result.get("message", "Outbound calling not configured"),
+            "error_code": "OUTBOUND_NOT_CONFIGURED",
+            "hint": (
+                "Server needs ELEVENLABS_API_KEY, ELEVENLABS_AGENT_ID, and "
+                "ELEVENLABS_PHONE_NUMBER_ID. In ElevenLabs, link a Twilio number "
+                "and use that phone number’s id here."
+            ),
+            "phone_last4": phone_last4,
+        }
+
+    if call_result.get("invalid_phone"):
+        return {
+            "success": False,
+            "error": call_result.get("message", "Invalid phone number"),
+            "error_code": "INVALID_PHONE",
+            "phone_last4": phone_last4,
+        }
+
+    if not call_result.get("success", True):
+        return {
+            "success": False,
+            "error": call_result.get("message", "ElevenLabs could not start the call"),
+            "error_code": "ELEVENLABS_API_ERROR",
+            "hint": "See backend logs for the full ElevenLabs error. Check agent id, phone number id, and that your ElevenLabs account can place outbound calls.",
+            "phone_last4": phone_last4,
+        }
+
+    session_id = call_result.get("conversation_id") or call_result.get("conversationId")
+    if not session_id:
+        logger.error("ElevenLabs advisor call missing conversation_id: %s", call_result)
+        return {
+            "success": False,
+            "error": "No call session was created (missing conversation id from provider).",
+            "error_code": "NO_CONVERSATION_ID",
+            "phone_last4": phone_last4,
+        }
+
     now = datetime.utcnow()
-    session_id = call_result.get("conversation_id") or str(uuid4())
-
-    phone_last4 = phone[-4:] if len(phone) >= 4 else phone
-
     conv_doc = {
         "user_id": uid,
         "session_id": session_id,
@@ -159,8 +205,9 @@ async def initiate_advisor_call(user_id: str) -> dict:
         "financial_context_snapshot": context,
         "started_at": now,
         "phone_last4": phone_last4,
-        "call_conversation_id": call_result.get("conversation_id"),
-        "call_sid": call_result.get("callSid"),
+        "call_conversation_id": session_id,
+        "call_sid": call_result.get("callSid") or call_result.get("call_sid"),
+        "to_number_e164": normalized_phone,
     }
     insert = await db.ai_conversations.insert_one(conv_doc)
 
@@ -170,11 +217,11 @@ async def initiate_advisor_call(user_id: str) -> dict:
     )
 
     return {
-        "success": not call_result.get("mock", False),
+        "success": True,
         "conversation_id": str(insert.inserted_id),
         "session_id": session_id,
-        "status": "mock" if call_result.get("mock") else "calling",
+        "status": "calling",
         "started_at": now.isoformat(),
         "phone_last4": phone_last4,
-        "mock": call_result.get("mock", False),
+        "mock": False,
     }

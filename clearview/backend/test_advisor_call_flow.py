@@ -174,7 +174,7 @@ async def test_http_endpoints():
             f"{base}/api/advisor/call/start",
             json={"user_id": "000000000000000000000000"},
         )
-        results["call/start rejects unknown user (400 or 404 or 400)"] = r.status_code in (400, 404, 502)
+        results["call/start rejects unknown user (400/404/502)"] = r.status_code in (400, 404, 502)
 
         # Test call/start without user_id
         r = await client.post(f"{base}/api/advisor/call/start", json={})
@@ -211,7 +211,7 @@ def test_frontend_types():
 
     content = api_ts.read_text()
     checks = {
-        "startAdvisorCall function exported": "export function startAdvisorCall" in content,
+        "startAdvisorCall function exported": "export async function startAdvisorCall" in content,
         "fetchAdvisorCalls function exported": "export function fetchAdvisorCalls" in content,
         "submitAdvisorCallResult exported": "export function submitAdvisorCallResult" in content,
         "AdvisorCallStatus type defined": "AdvisorCallStatus" in content,
