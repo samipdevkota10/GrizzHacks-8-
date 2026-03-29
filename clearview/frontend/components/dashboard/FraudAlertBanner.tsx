@@ -103,30 +103,31 @@ function ActiveAlertCard({ alert, onResolved }: { alert: FraudAlert; onResolved:
           Suspicious charge of ${Math.abs(alert.amount).toLocaleString(undefined, { minimumFractionDigits: 2 })} at {alert.merchant_name}
         </p>
         <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{alert.reason}</p>
-        {alert.status === "calling" && (
-          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1 font-medium animate-pulse">
-            Vera is calling your phone now to verify this charge...
+        {alert.status === "calling" ? (
+          <p className="text-xs text-amber-600 dark:text-amber-400 mt-1.5 font-medium animate-pulse">
+            Vera is calling your phone now — your response on the call will be applied automatically.
           </p>
+        ) : (
+          <div className="flex items-center gap-2 mt-3">
+            <span className="text-[10px] text-muted-foreground">Was this you?</span>
+            <button
+              onClick={() => handleResolve("user_confirmed")}
+              disabled={resolving !== null}
+              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
+            >
+              {resolving === "confirm" ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
+              Yes, approve
+            </button>
+            <button
+              onClick={() => handleResolve("user_denied")}
+              disabled={resolving !== null}
+              className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+            >
+              {resolving === "deny" ? <Loader2 size={11} className="animate-spin" /> : <XCircle size={11} />}
+              No, block it
+            </button>
+          </div>
         )}
-        <div className="flex items-center gap-2 mt-3">
-          <span className="text-[10px] text-muted-foreground">Was this you?</span>
-          <button
-            onClick={() => handleResolve("user_confirmed")}
-            disabled={resolving !== null}
-            className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 disabled:opacity-50 transition-colors"
-          >
-            {resolving === "confirm" ? <Loader2 size={11} className="animate-spin" /> : <CheckCircle2 size={11} />}
-            Yes, approve
-          </button>
-          <button
-            onClick={() => handleResolve("user_denied")}
-            disabled={resolving !== null}
-            className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
-          >
-            {resolving === "deny" ? <Loader2 size={11} className="animate-spin" /> : <XCircle size={11} />}
-            No, block it
-          </button>
-        </div>
       </div>
     </div>
   );

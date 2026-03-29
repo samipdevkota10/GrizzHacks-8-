@@ -213,5 +213,24 @@ class ElevenLabsService:
         data.setdefault("success", True)
         return data
 
+    async def get_conversation(self, conversation_id: str) -> dict | None:
+        """Fetch conversation details from ElevenLabs to check call status and transcript."""
+        if not self.is_configured or not conversation_id:
+            return None
+        try:
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(
+                    f"{self.BASE_URL}/convai/conversations/{conversation_id}",
+                    headers={"xi-api-key": self.api_key},
+                    timeout=15.0,
+                )
+            if resp.status_code >= 400:
+                logger.warning("ElevenLabs get_conversation %s: HTTP %s", conversation_id, resp.status_code)
+                return None
+            return resp.json()
+        except Exception as exc:
+            logger.warning("ElevenLabs get_conversation error: %s", exc)
+            return None
+
 
 elevenlabs_service = ElevenLabsService()

@@ -1,7 +1,9 @@
 """Orchestrator that builds a transaction-specific Vera prompt and
 initiates an outbound phone call to the account holder."""
 
+import asyncio
 import logging
+import re
 from datetime import datetime
 
 from bson import ObjectId
@@ -267,9 +269,182 @@ async def initiate_fraud_call(
         user_id, fraud_alert_id, call_result,
     )
 
+    conv_id = call_result.get("conversation_id")
+    if call_succeeded and conv_id:
+        asyncio.create_task(
+            _poll_call_outcome(conv_id, fraud_alert_id),
+            name=f"poll-call-{fraud_alert_id[:8]}",
+        )
+
     return {
         "success": call_result.get("success", not call_result.get("mock", False)),
-        "conversation_id": call_result.get("conversation_id"),
+        "conversation_id": conv_id,
         "call_sid": call_result.get("callSid"),
         "mock": call_result.get("mock", False),
     }
+
+
+# ---------------------------------------------------------------------------
+# Post-call polling — auto-resolve fraud alert from ElevenLabs transcript
+# ---------------------------------------------------------------------------
+
+_DENY_PATTERNS = re.compile(
+    r"\b(no|didn'?t|did not|don'?t recognize|wasn'?t me|not me|block|deny|denied|freeze|fraud|unauthorized|not authorized)\b",
+    re.IGNORECASE,
+)
+_APPROVE_PATTERNS = re.compile(
+    r"\b(yes|i did|that was me|i made|approve|authorized|legitimate|mine|confirm)\b",
+    re.IGNORECASE,
+)
+
+
+def _infer_resolution_from_transcript(conversation_data: dict) -> str | None:
+    """Determine if the user approved or denied based on the call transcript.
+
+    Checks tool calls first (most reliable), then falls back to keyword
+    analysis of user messages.
+    """
+    # 1) Check if the agent called our webhook tools
+    transcript = conversation_data.get("transcript") or []
+    for entry in transcript:
+        tool_calls = entry.get("tool_calls") or entry.get("tool_call") or []
+        if isinstance(tool_calls, dict):
+            tool_calls = [tool_calls]
+        for tc in tool_calls:
+            name = (tc.get("name") or tc.get("tool_name") or "").lower()
+            if "approve" in name:
+                return "user_confirmed"
+            if "deny" in name or "freeze" in name:
+                return "user_denied"
+
+    # 2) Keyword analysis on user messages (last resort)
+    user_messages = " ".join(
+        e.get("message", "") for e in transcript
+        if e.get("role") == "user"
+    ).strip()
+    if not user_messages:
+        return None
+
+    deny_hits = len(_DENY_PATTERNS.findall(user_messages))
+    approve_hits = len(_APPROVE_PATTERNS.findall(user_messages))
+
+    if deny_hits > approve_hits:
+        return "user_denied"
+    if approve_hits > deny_hits:
+        return "user_confirmed"
+    return None
+
+
+async def _resolve_alert(fraud_alert_id: str, resolution: str) -> None:
+    """Apply the call outcome to the fraud alert and related transaction."""
+    db = get_database()
+    alert = await db.fraud_alerts.find_one({"_id": ObjectId(fraud_alert_id)})
+    if not alert or alert.get("status") == "resolved":
+        return
+
+    now = datetime.utcnow()
+    await db.fraud_alerts.update_one(
+        {"_id": ObjectId(fraud_alert_id)},
+        {"$set": {
+            "status": "resolved",
+            "resolution": resolution,
+            "call_resolved_at": now,
+            "resolved_by": "auto_call_poll",
+        }},
+    )
+
+    tx_id = alert.get("transaction_id")
+    if resolution == "user_confirmed":
+        if tx_id:
+            await db.transactions.update_one(
+                {"_id": tx_id if isinstance(tx_id, ObjectId) else ObjectId(tx_id)},
+                {"$set": {"status": "approved", "anomaly_flag": False}},
+            )
+        logger.info("Auto-resolved alert %s as APPROVED via call transcript", fraud_alert_id)
+
+    elif resolution == "user_denied":
+        if tx_id:
+            await db.transactions.update_one(
+                {"_id": tx_id if isinstance(tx_id, ObjectId) else ObjectId(tx_id)},
+                {"$set": {"status": "denied"}},
+            )
+        if alert.get("virtual_card_id"):
+            card_id = alert["virtual_card_id"]
+            await db.virtual_cards.update_one(
+                {"_id": card_id if isinstance(card_id, ObjectId) else ObjectId(card_id)},
+                {"$set": {"status": "frozen", "paused_at": now}},
+            )
+        await db.notifications.insert_one({
+            "user_id": alert["user_id"],
+            "type": "fraud_denied",
+            "title": f"Suspicious charge at {alert['merchant_name']} blocked",
+            "message": (
+                f"A charge of ${abs(alert['amount']):,.2f} at {alert['merchant_name']} "
+                "was denied and the card has been frozen."
+            ),
+            "is_read": False,
+            "related_entity_type": "fraud_alert",
+            "related_entity_id": fraud_alert_id,
+            "created_at": now,
+        })
+        logger.info("Auto-resolved alert %s as DENIED via call transcript", fraud_alert_id)
+
+
+async def _poll_call_outcome(
+    conversation_id: str,
+    fraud_alert_id: str,
+    max_wait_seconds: int = 300,
+    interval: int = 10,
+) -> None:
+    """Background task: poll ElevenLabs for conversation outcome after call."""
+    logger.info("Starting post-call poll for conv=%s alert=%s", conversation_id, fraud_alert_id)
+    elapsed = 0
+
+    while elapsed < max_wait_seconds:
+        await asyncio.sleep(interval)
+        elapsed += interval
+
+        db = get_database()
+        alert = await db.fraud_alerts.find_one({"_id": ObjectId(fraud_alert_id)})
+        if alert and alert.get("status") == "resolved":
+            logger.info("Alert %s already resolved (webhook worked), stopping poll", fraud_alert_id)
+            return
+
+        conv_data = await elevenlabs_service.get_conversation(conversation_id)
+        if not conv_data:
+            continue
+
+        status = conv_data.get("status", "").lower()
+        if status in ("done", "ended", "completed", "failed", "timeout"):
+            logger.info("Call ended with status=%s for alert %s", status, fraud_alert_id)
+            resolution = _infer_resolution_from_transcript(conv_data)
+            if resolution:
+                await _resolve_alert(fraud_alert_id, resolution)
+            else:
+                logger.warning(
+                    "Could not infer resolution from transcript for alert %s, marking no_answer",
+                    fraud_alert_id,
+                )
+                await db.fraud_alerts.update_one(
+                    {"_id": ObjectId(fraud_alert_id)},
+                    {"$set": {
+                        "status": "resolved",
+                        "resolution": "no_answer",
+                        "call_resolved_at": datetime.utcnow(),
+                        "resolved_by": "auto_call_poll_no_signal",
+                    }},
+                )
+            return
+
+    logger.warning("Poll timed out after %ds for alert %s", max_wait_seconds, fraud_alert_id)
+    db = get_database()
+    alert = await db.fraud_alerts.find_one({"_id": ObjectId(fraud_alert_id)})
+    if alert and alert.get("status") != "resolved":
+        await db.fraud_alerts.update_one(
+            {"_id": ObjectId(fraud_alert_id)},
+            {"$set": {
+                "status": "call_failed",
+                "call_error": "Post-call poll timed out — no outcome detected",
+                "resolved_by": "auto_call_poll_timeout",
+            }},
+        )
