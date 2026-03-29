@@ -15,6 +15,16 @@ import {
   GraduationCap,
   Target,
   Loader2,
+  UtensilsCrossed,
+  Car,
+  Gamepad2,
+  ShoppingBag,
+  Heart,
+  Lightbulb,
+  Smartphone,
+  CircleDollarSign,
+  Package,
+  type LucideIcon,
 } from "lucide-react";
 import { MerchantLogo } from "@/components/MerchantLogo";
 import {
@@ -52,29 +62,29 @@ import { FraudAlertBanner } from "@/components/dashboard/FraudAlertBanner";
 import { useChartColors } from "@/lib/useChartColors";
 
 const CATEGORY_COLORS: Record<string, string> = {
-  food: "#F97316",
-  transport: "#FBBF24",
-  entertainment: "#7C3AED",
-  shopping: "#EC4899",
-  health: "#16A34A",
-  utilities: "#0EA5E9",
-  subscription: "#8B5CF6",
-  subscriptions: "#8B5CF6",
-  income: "#16A34A",
-  other: "#94A3B8",
+  food: "#C2410C",
+  transport: "#B45309",
+  entertainment: "#6D28D9",
+  shopping: "#9F1239",
+  health: "#15803D",
+  utilities: "#1E6A8A",
+  subscription: "#7E22CE",
+  subscriptions: "#7E22CE",
+  income: "#15803D",
+  other: "#64748B",
 };
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  food: "🍔",
-  transport: "⛽",
-  entertainment: "🎮",
-  shopping: "🛍️",
-  health: "🏥",
-  utilities: "💡",
-  subscription: "📱",
-  subscriptions: "📱",
-  income: "💰",
-  other: "📦",
+const CATEGORY_ICONS: Record<string, LucideIcon> = {
+  food: UtensilsCrossed,
+  transport: Car,
+  entertainment: Gamepad2,
+  shopping: ShoppingBag,
+  health: Heart,
+  utilities: Lightbulb,
+  subscription: Smartphone,
+  subscriptions: Smartphone,
+  income: CircleDollarSign,
+  other: Package,
 };
 
 function StatCard({
@@ -414,7 +424,7 @@ export default function DashboardOverview() {
                 {spendingByCategory.slice(0, 5).map((cat) => (
                   <div key={cat.name} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs">{CATEGORY_EMOJI[cat.name.toLowerCase()] || "📦"}</span>
+                      {(() => { const Icon = CATEGORY_ICONS[cat.name.toLowerCase()] || Package; return <Icon size={12} className="text-muted-foreground" />; })()}
                       <span className="text-muted-foreground">{cat.name}</span>
                     </div>
                     <span className="font-medium text-foreground tabular-nums">${cat.amount.toLocaleString()}</span>
@@ -454,15 +464,15 @@ export default function DashboardOverview() {
             {budgetCategories.map((cat) => {
               const pct = cat.budget > 0 ? Math.min((cat.spent / cat.budget) * 100, 100) : 0;
               const over = cat.spent > cat.budget;
-              const emoji = CATEGORY_EMOJI[cat.name.toLowerCase()] || "📦";
+              const CatIcon = CATEGORY_ICONS[cat.name.toLowerCase()] || Package;
               return (
                 <div key={cat.name}>
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-1.5">
-                      <span className="text-xs">{emoji}</span>
+                      <CatIcon size={12} className="text-muted-foreground" />
                       <span className="text-xs text-muted-foreground">{cat.name}</span>
                     </div>
-                    <span className={`text-xs font-medium tabular-nums ${over ? "text-red-500" : "text-foreground"}`}>
+                    <span className={`text-xs font-medium tabular-nums ${over ? "text-primary" : "text-foreground"}`}>
                       ${Math.round(cat.spent)} / ${cat.budget}
                     </span>
                   </div>
@@ -471,7 +481,7 @@ export default function DashboardOverview() {
                       className="h-full rounded-full transition-all duration-700"
                       style={{
                         width: `${pct}%`,
-                        backgroundColor: over ? "#DC2626" : cat.color,
+                        backgroundColor: over ? "var(--color-primary)" : cat.color,
                       }}
                     />
                   </div>
@@ -568,7 +578,7 @@ export default function DashboardOverview() {
             <div>
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Top Category</p>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-xs">{CATEGORY_EMOJI[qs.top_category.toLowerCase()] || "📦"}</span>
+                {(() => { const TopIcon = CATEGORY_ICONS[qs.top_category.toLowerCase()] || Package; return <TopIcon size={14} className="text-muted-foreground" />; })()}
                 <p className="text-sm font-medium text-foreground">{qs.top_category.charAt(0).toUpperCase() + qs.top_category.slice(1)}</p>
                 <span className="text-xs text-muted-foreground tabular-nums ml-auto">${qs.top_category_amount.toLocaleString()}</span>
               </div>

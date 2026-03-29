@@ -1,7 +1,20 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, Zap } from "lucide-react";
+import {
+  TrendingUp,
+  Zap,
+  UtensilsCrossed,
+  Car,
+  Gamepad2,
+  ShoppingBag,
+  Lightbulb,
+  Smartphone,
+  ShoppingCart,
+  Tv,
+  CreditCard,
+  type LucideIcon,
+} from "lucide-react";
 import { getUserId, fetchWeeklyDigest } from "@/lib/api";
 
 interface DigestDetail {
@@ -48,16 +61,16 @@ const DEFAULT_BRAND = {
   text: "text-indigo-700 dark:text-indigo-400",
 };
 
-const CATEGORY_EMOJI: Record<string, string> = {
-  food: "🍔",
-  grocery: "🛒",
-  streaming: "📺",
-  transport: "⛽",
-  shopping: "🛍️",
-  entertainment: "🎮",
-  subscription: "📱",
-  utilities: "💡",
-  other: "💳",
+const CATEGORY_ICON: Record<string, LucideIcon> = {
+  food: UtensilsCrossed,
+  grocery: ShoppingCart,
+  streaming: Tv,
+  transport: Car,
+  shopping: ShoppingBag,
+  entertainment: Gamepad2,
+  subscription: Smartphone,
+  utilities: Lightbulb,
+  other: CreditCard,
 };
 
 export function CardOptimizerWidget() {
@@ -87,13 +100,13 @@ export function CardOptimizerWidget() {
       </div>
 
       {digest.missed_rewards > 0 && (
-        <div className="rounded-xl bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/20 border border-green-200/60 dark:border-green-800/30 p-3 mb-4">
+        <div className="rounded-xl bg-secondary border border-border p-3 mb-4">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-green-100 dark:bg-green-900/40 flex items-center justify-center flex-shrink-0">
-              <TrendingUp size={12} className="text-green-600 dark:text-green-400" />
+            <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
+              <TrendingUp size={12} className="text-primary" />
             </div>
-            <p className="text-sm font-semibold text-green-800 dark:text-green-300">
-              +${digest.missed_rewards.toFixed(2)} in missed rewards
+            <p className="text-sm font-semibold text-foreground">
+              +${digest.missed_rewards.toFixed(2)} in potential rewards this week
             </p>
           </div>
         </div>
@@ -102,12 +115,14 @@ export function CardOptimizerWidget() {
       <div className="space-y-3">
         {digest.details.slice(0, 3).map((detail) => {
           const brand = CARD_BRAND[detail.best_card] || DEFAULT_BRAND;
-          const emoji = CATEGORY_EMOJI[detail.category.toLowerCase()] || "💳";
+          const CatIcon = CATEGORY_ICON[detail.category.toLowerCase()] || CreditCard;
           return (
-            <div key={detail.category} className={`rounded-xl border p-3 ${brand.bg} ${brand.border}`}>
+            <div key={detail.category} className="rounded-xl border border-border bg-secondary/50 p-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <span className="text-base flex-shrink-0">{emoji}</span>
+                  <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                    <CatIcon size={14} className="text-muted-foreground" />
+                  </div>
                   <div className="min-w-0">
                     <p className="text-xs font-semibold text-foreground truncate">
                       {detail.best_card}
@@ -117,7 +132,7 @@ export function CardOptimizerWidget() {
                     </p>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-green-600 dark:text-green-400 tabular-nums flex-shrink-0 ml-2">
+                <span className="text-xs font-bold text-primary tabular-nums flex-shrink-0 ml-2">
                   +${detail.potential_cashback.toFixed(2)}
                 </span>
               </div>

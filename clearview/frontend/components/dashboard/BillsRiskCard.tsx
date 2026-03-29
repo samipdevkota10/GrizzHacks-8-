@@ -6,21 +6,21 @@ import type { BillRisk } from "@/lib/api";
 const RISK_CONFIG = {
   safe: {
     icon: ShieldCheck,
-    iconColor: "text-green-600",
+    iconColor: "text-foreground",
     label: "All Clear",
-    labelStyle: "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950/30",
+    labelStyle: "text-foreground bg-secondary",
   },
   watch: {
     icon: ShieldAlert,
-    iconColor: "text-amber-600",
+    iconColor: "text-primary",
     label: "Watch",
-    labelStyle: "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30",
+    labelStyle: "text-primary bg-warm dark:bg-warm",
   },
   critical: {
     icon: ShieldX,
-    iconColor: "text-red-600",
+    iconColor: "text-primary",
     label: "At Risk",
-    labelStyle: "text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-950/30",
+    labelStyle: "text-primary bg-warm dark:bg-warm",
   },
 } as const;
 
@@ -57,7 +57,7 @@ export function BillsRiskCard({ risk }: { risk: BillRisk }) {
 
       <div className="flex justify-between items-center p-3 rounded-xl bg-muted/30">
         <span className="text-xs text-muted-foreground">Checking buffer after 30d bills</span>
-        <span className={`text-sm font-bold tabular-nums ${risk.checking_buffer_after_30d < 0 ? "text-red-500" : "text-green-600"}`}>
+        <span className={`text-sm font-bold tabular-nums ${risk.checking_buffer_after_30d < 0 ? "text-primary" : "text-foreground"}`}>
           {risk.checking_buffer_after_30d < 0 ? "-" : ""}${Math.abs(risk.checking_buffer_after_30d).toLocaleString()}
         </span>
       </div>

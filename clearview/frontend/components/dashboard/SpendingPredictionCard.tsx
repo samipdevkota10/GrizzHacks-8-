@@ -1,18 +1,29 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, AlertTriangle } from "lucide-react";
+import {
+  TrendingUp,
+  AlertTriangle,
+  UtensilsCrossed,
+  Car,
+  Gamepad2,
+  ShoppingBag,
+  Lightbulb,
+  Smartphone,
+  Package,
+  type LucideIcon,
+} from "lucide-react";
 import { getUserId, fetchNextMonthPrediction, type CategoryPrediction } from "@/lib/api";
 
-const CATEGORY_META: Record<string, { color: string; emoji: string }> = {
-  food: { color: "#F97316", emoji: "🍔" },
-  transport: { color: "#FBBF24", emoji: "⛽" },
-  entertainment: { color: "#7C3AED", emoji: "🎮" },
-  shopping: { color: "#EC4899", emoji: "🛍️" },
-  utilities: { color: "#0EA5E9", emoji: "💡" },
-  subscription: { color: "#8B5CF6", emoji: "📱" },
-  subscriptions: { color: "#8B5CF6", emoji: "📱" },
-  other: { color: "#94A3B8", emoji: "📦" },
+const CATEGORY_META: Record<string, { color: string; icon: LucideIcon }> = {
+  food: { color: "#C2410C", icon: UtensilsCrossed },
+  transport: { color: "#B45309", icon: Car },
+  entertainment: { color: "#6D28D9", icon: Gamepad2 },
+  shopping: { color: "#9F1239", icon: ShoppingBag },
+  utilities: { color: "#1E6A8A", icon: Lightbulb },
+  subscription: { color: "#7E22CE", icon: Smartphone },
+  subscriptions: { color: "#7E22CE", icon: Smartphone },
+  other: { color: "#64748B", icon: Package },
 };
 
 export function SpendingPredictionCard() {
@@ -45,7 +56,7 @@ export function SpendingPredictionCard() {
           Next Month Forecast
         </h3>
         {overBudgetCount > 0 && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 border border-red-200/60 dark:border-red-800/30 flex items-center gap-1">
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary text-primary border border-border flex items-center gap-1">
             <AlertTriangle size={9} />
             {overBudgetCount} over budget
           </span>
@@ -62,7 +73,7 @@ export function SpendingPredictionCard() {
           <p className="text-xl font-bold text-foreground tabular-nums">${totalBudget.toLocaleString()}</p>
         </div>
         <div className="text-right">
-          <p className={`text-lg font-bold tabular-nums ${totalPct > 100 ? "text-red-500" : "text-green-600"}`}>
+          <p className={`text-lg font-bold tabular-nums ${totalPct > 100 ? "text-primary" : "text-foreground"}`}>
             {totalPct}%
           </p>
         </div>
@@ -72,14 +83,15 @@ export function SpendingPredictionCard() {
         {predictions.slice(0, 6).map((pred) => {
           const pct = pred.budgeted > 0 ? Math.min((pred.predicted / pred.budgeted) * 100, 120) : 0;
           const meta = CATEGORY_META[pred.category.toLowerCase()] || CATEGORY_META.other;
+          const CatIcon = meta.icon;
           return (
             <div key={pred.category}>
               <div className="flex items-center justify-between mb-1">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-xs">{meta.emoji}</span>
+                  <CatIcon size={12} className="text-muted-foreground" />
                   <span className="text-xs text-muted-foreground capitalize">{pred.category}</span>
                 </div>
-                <span className={`text-xs font-medium tabular-nums ${pred.over_budget ? "text-red-500" : "text-foreground"}`}>
+                <span className={`text-xs font-medium tabular-nums ${pred.over_budget ? "text-primary" : "text-foreground"}`}>
                   ${pred.predicted.toLocaleString()}{pred.budgeted > 0 ? ` / $${pred.budgeted}` : ""}
                 </span>
               </div>
@@ -89,7 +101,7 @@ export function SpendingPredictionCard() {
                     className="h-full rounded-full transition-all duration-700"
                     style={{
                       width: `${Math.min(pct, 100)}%`,
-                      backgroundColor: pred.over_budget ? "#DC2626" : meta.color,
+                      backgroundColor: pred.over_budget ? "var(--color-primary)" : meta.color,
                     }}
                   />
                 </div>

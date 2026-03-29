@@ -51,7 +51,7 @@ export function CashFlowForecast() {
           30-Day Cash Flow Forecast
         </h3>
         {minBalance < dangerThreshold && minDay && (
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-400">
+          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary text-primary border border-border">
             Low: ${minBalance.toLocaleString()} on {new Date(minDay.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
           </span>
         )}
@@ -61,8 +61,8 @@ export function CashFlowForecast() {
         <AreaChart data={chartData}>
           <defs>
             <linearGradient id="cashGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#4F8EF7" stopOpacity={0.2} />
-              <stop offset="100%" stopColor="#4F8EF7" stopOpacity={0} />
+              <stop offset="0%" stopColor="#1A1A1A" stopOpacity={0.08} />
+              <stop offset="100%" stopColor="#1A1A1A" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
@@ -90,16 +90,17 @@ export function CashFlowForecast() {
           />
           <ReferenceLine
             y={dangerThreshold}
-            stroke="#DC2626"
+            stroke="var(--color-primary)"
             strokeDasharray="4 4"
-            label={{ value: "Danger", fill: "#DC2626", fontSize: 10, position: "right" }}
+            strokeOpacity={0.5}
+            label={{ value: "Low", fill: "var(--color-primary)", fontSize: 10, position: "right" }}
           />
           <Area
             type="monotone"
             dataKey="balance"
-            stroke="#4F8EF7"
+            stroke="#1A1A1A"
             fill="url(#cashGrad)"
-            strokeWidth={2}
+            strokeWidth={1.5}
           />
         </AreaChart>
       </ResponsiveContainer>
@@ -113,7 +114,7 @@ export function CashFlowForecast() {
                 key={i}
                 className={`text-[10px] px-2 py-1 rounded-full border font-medium ${
                   isIncome
-                    ? "bg-green-50 text-green-700 border-green-200/60 dark:bg-green-950/20 dark:text-green-400 dark:border-green-800/30"
+                    ? "bg-warm text-foreground border-border dark:bg-warm dark:text-foreground"
                     : "bg-muted text-muted-foreground border-border"
                 }`}
               >

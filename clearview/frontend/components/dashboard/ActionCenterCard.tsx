@@ -5,9 +5,9 @@ import { AlertTriangle, ArrowRight, Info, AlertCircle } from "lucide-react";
 import type { ActionItem } from "@/lib/api";
 
 const SEVERITY_STYLES = {
-  high: "bg-red-50 border-red-200 text-red-700",
-  medium: "bg-amber-50 border-amber-200 text-amber-700",
-  low: "bg-blue-50 border-blue-200 text-blue-700",
+  high: "bg-warm border-primary/20 text-foreground dark:bg-warm dark:border-primary/30",
+  medium: "bg-secondary border-border text-foreground",
+  low: "bg-secondary border-border text-foreground",
 } as const;
 
 const SEVERITY_ICON = {

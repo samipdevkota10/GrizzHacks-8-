@@ -4,9 +4,9 @@ import { Gauge } from "lucide-react";
 import type { BudgetPulse } from "@/lib/api";
 
 const STATUS_COLORS = {
-  safe: { bar: "bg-green-500", label: "text-green-700 bg-green-50 dark:text-green-400 dark:bg-green-950/30" },
-  warning: { bar: "bg-amber-500", label: "text-amber-700 bg-amber-50 dark:text-amber-400 dark:bg-amber-950/30" },
-  critical: { bar: "bg-red-500", label: "text-red-700 bg-red-50 dark:text-red-400 dark:bg-red-950/30" },
+  safe: { bar: "bg-foreground/60", label: "text-foreground bg-secondary" },
+  warning: { bar: "bg-primary/70", label: "text-primary bg-warm dark:bg-warm" },
+  critical: { bar: "bg-primary", label: "text-primary bg-warm dark:bg-warm" },
 } as const;
 
 export function BudgetPulseCard({
@@ -55,13 +55,13 @@ export function BudgetPulseCard({
           </div>
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Projected</p>
-            <p className={`text-sm font-bold tabular-nums ${projectedPct > 100 ? "text-red-500" : "text-foreground"}`}>
+            <p className={`text-sm font-bold tabular-nums ${projectedPct > 100 ? "text-primary" : "text-foreground"}`}>
               ${pulse.projected_month_spend.toLocaleString()}
             </p>
           </div>
           <div>
             <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Forecast Left</p>
-            <p className={`text-sm font-bold tabular-nums ${pulse.forecast_remaining < 0 ? "text-red-500" : "text-green-600"}`}>
+            <p className={`text-sm font-bold tabular-nums ${pulse.forecast_remaining < 0 ? "text-primary" : "text-foreground"}`}>
               {pulse.forecast_remaining < 0 ? "-" : ""}${Math.abs(pulse.forecast_remaining).toLocaleString()}
             </p>
           </div>
