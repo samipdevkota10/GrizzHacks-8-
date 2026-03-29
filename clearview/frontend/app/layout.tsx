@@ -35,8 +35,9 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${inter.variable} ${playfairDisplay.variable} ${jetbrainsMono.variable}`}
+      suppressHydrationWarning
     >
-      <body className="antialiased min-h-screen bg-background text-foreground font-sans">
+      <body className="antialiased min-h-screen bg-background text-foreground font-sans" suppressHydrationWarning>
         {children}
       </body>
     </html>

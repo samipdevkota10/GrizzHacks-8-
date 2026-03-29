@@ -69,6 +69,8 @@ async def seed() -> None:
             "user_id": user_id,
             "monthly_income": 4800.0,
             "monthly_budget": 3500.0,
+            "hourly_rate": 30.0,
+            "tax_rate": 0.22,
             "category_budgets": {
                 "food": 600,
                 "transport": 250,
@@ -83,7 +85,11 @@ async def seed() -> None:
             "total_assets": 24739.83,
             "total_liabilities": 1340.50,
             "savings_goal_monthly": 500.0,
-            "financial_goals": [],
+            "financial_goals": [
+                {"name": "Emergency Fund", "target_amount": 15000.0, "current_amount": 8120.0},
+                {"name": "Vacation Fund", "target_amount": 3000.0, "current_amount": 1200.0},
+                {"name": "Pay Off Credit Card", "target_amount": 1340.50, "current_amount": 0.0},
+            ],
             "last_synced": None,
         }
     )

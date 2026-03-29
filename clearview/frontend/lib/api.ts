@@ -104,6 +104,28 @@ export async function signup(
   return data;
 }
 
+// ── Onboarding ───────────────────────────────────────────────
+export interface OnboardingPayload {
+  monthly_income: number;
+  employment_type: string;
+  employer_name: string;
+  pay_frequency: string;
+  hourly_rate: number;
+  tax_rate: number;
+  monthly_budget: number;
+  savings_goal_monthly: number;
+  phone_number: string;
+  currency: string;
+  financial_goals: { name: string; target_amount: number; current_amount: number }[];
+  category_budgets: Record<string, number>;
+  accounts: { name: string; type: string; balance: number; institution: string }[];
+  loans: { name: string; balance: number; rate: number; monthly: number; lender: string }[];
+}
+
+export function submitOnboarding(data: OnboardingPayload): Promise<{ status: string; onboarding_complete: boolean }> {
+  return post<{ status: string; onboarding_complete: boolean }>("/api/auth/onboarding", data);
+}
+
 // ── Dashboard ────────────────────────────────────────────────
 export interface DashboardData {
   user: Record<string, unknown>;

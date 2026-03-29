@@ -1,12 +1,12 @@
 import json
 import logging
+
 import google.generativeai as genai
 from config import settings
 
-logger = logging.getLogger(__name__)
-
 genai.configure(api_key=settings.GEMINI_API_KEY)
 
+logger = logging.getLogger(__name__)
 
 SYSTEM_PROMPT_TEMPLATE = '''You are Vera, {user_name}'s personal financial advisor inside the VeraFund app.
 
@@ -29,22 +29,101 @@ RULES:
 5. Be a financial ally, not a financial lecture.'''
 
 
-VISION_EXTRACTION_PROMPT = """Analyze this image and extract the product and price.
-Return ONLY valid JSON: {"product": "exact name", "price": 00.00, "currency": "USD"}.
-If no price is visible, estimate based on product type.
-Do not include any other text or markdown."""
+VISION_EXTRACTION_PROMPT = """Analyze this image and extract the product and its price.
+Return ONLY valid JSON with no other text, markdown, or code fences:
+{"product": "exact product name", "price": 00.00, "currency": "USD"}
+
+Rules:
+- If the price is clearly visible, use the exact price.
+- If no price is visible, estimate the typical retail price for this product.
+- If the image shows multiple products, pick the most prominent one.
+- Always return valid JSON. Nothing else."""
 
 
-PURCHASE_ADVICE_TEMPLATE = """The user is considering buying: {product} for ${price:.2f}
+PURCHASE_ANALYSIS_PROMPT = """You are analyzing a potential purchase for {user_name}.
 
-Their current financial situation:
+PRODUCT: {product}
+PRICE: ${price:.2f}
+
+THEIR FINANCIAL SITUATION:
+- After-tax hourly rate: ${net_hourly_rate:.2f}/hr
 - Discretionary budget remaining this month: ${discretionary_remaining:.2f}
-- Upcoming bills in next 30 days: ${upcoming_bills:.2f}
+- Monthly budget: ${monthly_budget:.2f} (spent ${month_spent:.2f} so far)
 - Checking balance: ${checking_balance:.2f}
-- Already spent ${month_spent:.2f} of ${monthly_budget:.2f} budget.
+- Monthly savings: ${monthly_savings:.2f}/month
+- Upcoming bills in next 30 days: ${upcoming_bills:.2f}
+- Net worth: ${net_worth:.2f}
 
-Give a direct verdict first (YES / HOLD OFF / NO), then explain in 80 words max
-using their specific numbers. Be honest even if uncomfortable."""
+SPENDING BY CATEGORY THIS MONTH:
+{category_spending_text}
+
+FINANCIAL GOALS:
+{goals_text}
+
+Return ONLY valid JSON (no markdown, no code fences, no extra text):
+{{
+  "verdict": "GO_FOR_IT" or "THINK_TWICE" or "HOLD_OFF" or "HARD_NO",
+  "reasoning": "2-3 sentence Vera-style explanation citing specific dollar amounts from the data above. Be direct, warm, and honest.",
+  "hours_of_work": <number: price divided by after-tax hourly rate, rounded to 1 decimal>,
+  "days_of_work": <number: hours_of_work / 8, rounded to 1 decimal>,
+  "budget_impact_percent": <number: what percentage of remaining monthly budget this eats, rounded to 1 decimal>,
+  "category_context": "1 sentence about how much they've already spent in a related category this month",
+  "goal_delays": [
+    {{"goal_name": "goal name", "delayed_by_weeks": <number: price / (monthly_savings / 4), rounded to 1 decimal>}}
+  ],
+  "alternatives": [
+    {{"name": "cheaper alternative product name", "estimated_price": <number>}},
+    {{"name": "another alternative", "estimated_price": <number>}}
+  ],
+  "total_cost_note": "If this is a subscription or has recurring costs, estimate annual cost. Otherwise null.",
+  "thirty_day_suggestion": <boolean: true if price > 15% of remaining budget and verdict is not GO_FOR_IT>
+}}
+
+VERDICT RULES:
+- GO_FOR_IT: price < 5% of remaining budget AND won't impact any goals significantly
+- THINK_TWICE: price is 5-25% of remaining budget, manageable but worth considering
+- HOLD_OFF: price is 25-60% of remaining budget OR delays a goal by > 4 weeks
+- HARD_NO: price exceeds remaining budget OR would cause financial strain"""
+
+
+RECEIPT_SCAN_PROMPT = """Extract all information from this receipt image.
+Return ONLY valid JSON (no markdown, no code fences, no extra text):
+{{
+  "merchant": "Store/Restaurant name",
+  "date": "YYYY-MM-DD or null if not visible",
+  "items": [
+    {{"name": "item name", "price": 0.00, "quantity": 1, "category": "food|shopping|entertainment|health|transport|utilities|other"}}
+  ],
+  "subtotal": 0.00,
+  "tax": 0.00,
+  "total": 0.00,
+  "payment_method": "cash|credit|debit|other or null if not visible"
+}}
+
+Rules:
+- Extract every line item you can read from the receipt.
+- Assign each item a spending category from: food, shopping, entertainment, health, transport, utilities, other.
+- If the receipt is from a restaurant or grocery store, categorize items as "food".
+- If you can't read a value clearly, estimate it.
+- Always return valid JSON. Nothing else."""
+
+
+def _parse_json_response(text: str) -> dict | None:
+    """Extract JSON from a model response, handling code fences."""
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        start = text.find("{")
+        end = text.rfind("}") + 1
+        if start >= 0 and end > start:
+            try:
+                return json.loads(text[start:end])
+            except json.JSONDecodeError:
+                pass
+    return None
 
 
 class GeminiService:
@@ -54,75 +133,129 @@ class GeminiService:
 
     async def chat(self, message: str, context: dict, history: list[dict] | None = None) -> str:
         system_prompt = SYSTEM_PROMPT_TEMPLATE.format(**context)
-        
-        contents = [{"role": "user", "parts": [{"text": system_prompt}]},
-                     {"role": "model", "parts": [{"text": "Understood. I'm Vera, ready to help with your finances using your specific data."}]}]
-        
+
+        contents = [
+            {"role": "user", "parts": [{"text": system_prompt}]},
+            {"role": "model", "parts": [{"text": "Understood. I'm Vera, ready to help with your finances using your specific data."}]},
+        ]
+
         if history:
             for msg in history[-10:]:
                 role = "user" if msg["role"] == "user" else "model"
                 contents.append({"role": role, "parts": [{"text": msg["content"]}]})
-        
+
         contents.append({"role": "user", "parts": [{"text": message}]})
-        
+
         response = await self.model.generate_content_async(
             contents,
-            generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=500)
+            generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=500),
         )
         return response.text
 
     async def purchase_vision_check(self, image_bytes: bytes, context: dict) -> dict:
         import PIL.Image
         import io
-        
+
         image = PIL.Image.open(io.BytesIO(image_bytes))
-        
+
         extraction_response = await self.vision_model.generate_content_async(
             [VISION_EXTRACTION_PROMPT, image],
-            generation_config=genai.GenerationConfig(temperature=0.1, max_output_tokens=200)
+            generation_config=genai.GenerationConfig(temperature=0.1, max_output_tokens=200),
         )
-        
-        try:
-            text = extraction_response.text.strip()
-            if text.startswith("```"):
-                text = text.split("\n", 1)[1].rsplit("```", 1)[0].strip()
-            extracted = json.loads(text)
-        except (json.JSONDecodeError, IndexError):
+
+        extracted = _parse_json_response(extraction_response.text)
+        if not extracted:
             extracted = {"product": "Unknown Product", "price": 0.0, "currency": "USD"}
-        
-        advice_prompt = PURCHASE_ADVICE_TEMPLATE.format(
-            product=extracted.get("product", "Unknown"),
-            price=extracted.get("price", 0),
+
+        product = extracted.get("product", "Unknown")
+        price = float(extracted.get("price", 0))
+
+        cat_spending = context.get("spending_by_category", {})
+        cat_text = "\n".join(f"  - {c}: ${a:,.2f}" for c, a in sorted(cat_spending.items(), key=lambda x: -x[1]))
+
+        goals = context.get("financial_goals", [])
+        goals_text_lines = []
+        for g in goals:
+            remaining = g["target_amount"] - g.get("current_amount", 0)
+            goals_text_lines.append(f"  - {g['name']}: ${g.get('current_amount', 0):,.2f} / ${g['target_amount']:,.2f} (${remaining:,.2f} left)")
+        goals_text = "\n".join(goals_text_lines) if goals_text_lines else "  No goals set"
+
+        analysis_prompt = PURCHASE_ANALYSIS_PROMPT.format(
+            user_name=context.get("user_name", "there"),
+            product=product,
+            price=price,
+            net_hourly_rate=context.get("net_hourly_rate", 23.4),
             discretionary_remaining=context.get("discretionary_remaining", 0),
-            upcoming_bills=context.get("upcoming_bills_30d", 0),
-            checking_balance=context.get("checking_balance", 0),
-            month_spent=context.get("month_spent", 0),
             monthly_budget=context.get("monthly_budget", 3500),
+            month_spent=context.get("month_spent", 0),
+            checking_balance=context.get("checking_balance", 0),
+            monthly_savings=context.get("monthly_savings", 0),
+            upcoming_bills=context.get("upcoming_bills_30d", 0),
+            net_worth=context.get("net_worth", 0),
+            category_spending_text=cat_text or "  No spending recorded",
+            goals_text=goals_text,
         )
-        
+
         system = SYSTEM_PROMPT_TEMPLATE.format(**context)
         advice_response = await self.model.generate_content_async(
-            [{"role": "user", "parts": [{"text": system}]},
-             {"role": "model", "parts": [{"text": "Ready to evaluate this purchase."}]},
-             {"role": "user", "parts": [{"text": advice_prompt}]}],
-            generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=300)
+            [
+                {"role": "user", "parts": [{"text": system}]},
+                {"role": "model", "parts": [{"text": "Ready to evaluate this purchase with the user's real financial data."}]},
+                {"role": "user", "parts": [{"text": analysis_prompt}]},
+            ],
+            generation_config=genai.GenerationConfig(temperature=0.3, max_output_tokens=800),
         )
-        
-        reasoning = advice_response.text.strip()
-        verdict = "careful"
-        lower = reasoning.lower()
-        if lower.startswith("yes") or "verdict: yes" in lower:
-            verdict = "yes"
-        elif lower.startswith("no") or "verdict: no" in lower:
-            verdict = "no"
-        
+
+        analysis = _parse_json_response(advice_response.text)
+
+        if not analysis:
+            reasoning = advice_response.text.strip()
+            net_hr = context.get("net_hourly_rate", 23.4)
+            hours = round(price / net_hr, 1) if net_hr > 0 else 0
+            analysis = {
+                "verdict": "THINK_TWICE",
+                "reasoning": reasoning,
+                "hours_of_work": hours,
+                "days_of_work": round(hours / 8, 1),
+                "budget_impact_percent": round(price / max(context.get("discretionary_remaining", 1), 1) * 100, 1),
+                "category_context": "",
+                "goal_delays": [],
+                "alternatives": [],
+                "total_cost_note": None,
+                "thirty_day_suggestion": price > context.get("discretionary_remaining", 0) * 0.15,
+            }
+
         return {
-            "product": extracted.get("product", "Unknown"),
-            "price": extracted.get("price", 0),
+            "product": product,
+            "price": price,
             "currency": extracted.get("currency", "USD"),
-            "verdict": verdict,
-            "reasoning": reasoning,
+            **analysis,
         }
+
+    async def scan_receipt(self, image_bytes: bytes) -> dict:
+        import PIL.Image
+        import io
+
+        image = PIL.Image.open(io.BytesIO(image_bytes))
+
+        response = await self.vision_model.generate_content_async(
+            [RECEIPT_SCAN_PROMPT, image],
+            generation_config=genai.GenerationConfig(temperature=0.1, max_output_tokens=1000),
+        )
+
+        result = _parse_json_response(response.text)
+        if not result:
+            result = {
+                "merchant": "Unknown",
+                "date": None,
+                "items": [],
+                "subtotal": 0,
+                "tax": 0,
+                "total": 0,
+                "payment_method": None,
+            }
+
+        return result
 
     async def generate_fraud_call_script(self, facts: dict) -> dict | None:
         """Produce a short, grounded phone script from structured facts only.

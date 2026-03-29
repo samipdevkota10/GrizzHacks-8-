@@ -27,8 +27,9 @@ export default function AuthPage() {
         await signup(name, email, password);
         window.location.href = "/onboarding";
       } else {
-        await login(email, password);
-        window.location.href = "/dashboard";
+        const result = await login(email, password);
+        const onboardingDone = (result.user as Record<string, unknown>)?.onboarding_complete;
+        window.location.href = onboardingDone ? "/dashboard" : "/onboarding";
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");

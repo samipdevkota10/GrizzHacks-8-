@@ -48,24 +48,48 @@ async def build_financial_context(user_id: str) -> dict:
     
     budget = profile["monthly_budget"] if profile else 3500
     discretionary = budget - month_spent
-    
+    monthly_income = profile.get("monthly_income", 4800) if profile else 4800
+    monthly_savings = max(0, monthly_income - month_spent)
+    hourly_rate = profile.get("hourly_rate", monthly_income / 160) if profile else 30.0
+    tax_rate = profile.get("tax_rate", 0.22) if profile else 0.22
+    net_hourly_rate = hourly_rate * (1 - tax_rate)
+    financial_goals = profile.get("financial_goals", []) if profile else []
+    category_budgets = profile.get("category_budgets", {}) if profile else {}
+
     large_purchases = [t for t in month_txns if t["amount"] < -50]
     large_purchases.sort(key=lambda x: x["amount"])
     large_text = "\n".join(
         f"  - {t['merchant_name']}: ${abs(t['amount']):.2f} on {t['date'].strftime('%b %d')}"
         for t in large_purchases[:5]
     )
-    
+
     net_worth = profile["net_worth"] if profile else 0
-    
+
+    goals_text = ""
+    if financial_goals:
+        goals_lines = []
+        for g in financial_goals:
+            remaining = g["target_amount"] - g.get("current_amount", 0)
+            goals_lines.append(f"  - {g['name']}: ${g.get('current_amount', 0):,.2f} / ${g['target_amount']:,.2f} (${remaining:,.2f} remaining)")
+        goals_text = "\n".join(goals_lines)
+
     context_text = f"""FINANCIAL SNAPSHOT (as of right now):
 - Net Worth: ${net_worth:,.2f}
 - Checking Balance: ${checking_balance:,.2f}
 - This Month: Spent ${month_spent:,.2f} of ${budget:,.2f} budget
 - Discretionary Left: ${discretionary:,.2f}
+- Monthly Income: ${monthly_income:,.2f}
+- Hourly Rate (pre-tax): ${hourly_rate:,.2f}/hr | After-tax: ${net_hourly_rate:,.2f}/hr
+- Monthly Savings Rate: ${monthly_savings:,.2f}/month
 - Top Spending Category: {top_category[0]} (${top_category[1]:,.2f} this month)
 - Active Subscriptions: {len(subscriptions)} services = ${sub_total:,.2f}/month
 - Bills Due Next 30 Days: ${bills_total:,.2f}
+
+SPENDING BY CATEGORY THIS MONTH:
+{chr(10).join(f'  - {cat}: ${amt:,.2f}' for cat, amt in sorted(by_category.items(), key=lambda x: -x[1])) if by_category else '  No spending recorded'}
+
+FINANCIAL GOALS:
+{goals_text if goals_text else "  No goals set"}
 
 UPCOMING BILLS:
 {chr(10).join(upcoming_bills) if upcoming_bills else "  None in next 30 days"}
@@ -79,6 +103,11 @@ RECENT LARGE PURCHASES:
         "checking_balance": checking_balance,
         "month_spent": month_spent,
         "monthly_budget": budget,
+        "monthly_income": monthly_income,
+        "monthly_savings": monthly_savings,
+        "hourly_rate": hourly_rate,
+        "tax_rate": tax_rate,
+        "net_hourly_rate": net_hourly_rate,
         "discretionary_remaining": discretionary,
         "subscription_count": len(subscriptions),
         "subscription_total_monthly": sub_total,
@@ -86,4 +115,7 @@ RECENT LARGE PURCHASES:
         "top_category": top_category[0],
         "top_category_amount": top_category[1],
         "user_name": user.get("name", "there") if user else "there",
+        "financial_goals": financial_goals,
+        "spending_by_category": {k: round(v, 2) for k, v in by_category.items()},
+        "category_budgets": category_budgets,
     }

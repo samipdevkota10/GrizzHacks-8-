@@ -40,7 +40,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       return;
     }
     fetchDashboard(uid).then((d) => {
-      const u = d.user as { name?: string; email?: string; avatar_url?: string | null };
+      const u = d.user as { name?: string; email?: string; avatar_url?: string | null; onboarding_complete?: boolean };
+      if (u.onboarding_complete === false) {
+        window.location.href = "/onboarding";
+        return;
+      }
       setUser({
         name: u.name || "User",
         email: u.email || "",
