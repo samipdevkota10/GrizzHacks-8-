@@ -29,7 +29,7 @@ import {
 
 import { getUserId } from "@/lib/api";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 type GoalDelay = { goal_name: string; delayed_by_weeks: number };
 type Alternative = { name: string; estimated_price: number };
