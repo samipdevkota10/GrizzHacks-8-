@@ -396,4 +396,70 @@ Rules: Mention the dollar amount and merchant name in opening_line. Stay under 4
             return None
 
 
+    async def summarize_advisor_call(self, transcript: str, context: dict) -> dict | None:
+        """Summarize an advisor phone call transcript, extracting key topics,
+        next steps, and any user-consented action requests.
+
+        Returns dict with: summary, key_topics, next_steps, action_requests, safety_flags.
+        Returns None if Gemini is unavailable or generation fails.
+        """
+        if not settings.GEMINI_API_KEY:
+            return None
+
+        context_text = context.get("context_text", "No financial context available.")
+        user_name = context.get("user_name", "the user")
+
+        prompt = f"""You are analyzing a completed phone call between Vera (AI financial advisor)
+and {user_name}. The call was a personalized financial coaching session.
+
+FINANCIAL CONTEXT AT TIME OF CALL:
+{context_text}
+
+CALL TRANSCRIPT:
+{transcript}
+
+Produce a structured summary. Return ONLY valid JSON (no markdown, no code fences):
+{{
+  "summary": "3-5 sentence personalized recap citing specific dollar amounts discussed. What was the main concern? What did Vera recommend? What did the user decide?",
+  "key_topics": ["array of 2-5 topic tags, e.g. 'budget_pacing', 'subscriptions', 'savings_goal', 'debt_paydown', 'dining_spend'"],
+  "next_steps": [
+    "Up to 3 concrete action items with specific amounts or timelines, e.g. 'Reduce dining spend by $150 this week', 'Review Netflix subscription ($15.99/mo) in app'"
+  ],
+  "action_requests": [
+    {{
+      "type": "freeze_card | cancel_subscription | set_alert | adjust_budget",
+      "target_name": "name of card, subscription, or category",
+      "user_consent_quote": "exact words the user said to approve this action, or empty string if no explicit consent",
+      "confidence": "high | medium | low — high only if user said clear yes/go ahead"
+    }}
+  ],
+  "safety_flags": ["array of any ambiguous phrases or risky requests detected, empty array if none"]
+}}
+
+RULES:
+- summary must reference at least 2 specific dollar amounts from the conversation.
+- action_requests must be empty array if the user never explicitly approved any action.
+- confidence is "high" ONLY if the transcript contains phrases like "yes", "do it", "go ahead", "freeze it now".
+- If the user said "maybe", "I'll think about it", "not sure" — set confidence to "low" and add to safety_flags.
+- next_steps should be actionable and specific, not generic advice."""
+
+        try:
+            response = await _call_with_retry(lambda: self.model.generate_content_async(
+                prompt,
+                generation_config=genai.GenerationConfig(
+                    temperature=0.2,
+                    max_output_tokens=4096,
+                    response_mime_type="application/json",
+                ),
+            ))
+            result = _parse_json_response(response.text)
+            if not result:
+                logger.warning("Advisor call summary parse failed: %s", response.text[:300])
+                return None
+            return result
+        except Exception as exc:
+            logger.warning("summarize_advisor_call failed: %s", exc)
+            return None
+
+
 gemini_service = GeminiService()

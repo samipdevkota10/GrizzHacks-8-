@@ -181,6 +181,44 @@ export function syncPlaid(): Promise<{
 }
 
 // ── Dashboard ────────────────────────────────────────────────
+export interface DailySnapshot {
+  status: "on_track" | "watch" | "at_risk";
+  message: string;
+  net_worth_delta_30d: number;
+  cashflow_delta_30d: number;
+}
+
+export interface ActionItem {
+  id: string;
+  type: "bill_risk" | "budget_overrun" | "subscription_creep" | "goal_slip" | "fraud_alert";
+  title: string;
+  description: string;
+  severity: "high" | "medium" | "low";
+  score: number;
+  cta_label: string;
+  cta_route: string;
+  metadata: Record<string, unknown>;
+}
+
+export interface BudgetPulse {
+  spent_to_date: number;
+  days_elapsed: number;
+  days_in_month: number;
+  burn_rate_daily: number;
+  projected_month_spend: number;
+  forecast_remaining: number;
+  status: "safe" | "warning" | "critical";
+}
+
+export interface BillRisk {
+  due_7d_total: number;
+  due_14d_total: number;
+  due_30d_total: number;
+  checking_buffer_after_30d: number;
+  risk_level: "safe" | "watch" | "critical";
+  at_risk_bills: { name: string; amount: number; date: string }[];
+}
+
 export interface DashboardData {
   user: Record<string, unknown>;
   financial_profile: Record<string, unknown> | null;
@@ -194,6 +232,10 @@ export interface DashboardData {
   upcoming_bills: UpcomingBill[];
   quick_stats: QuickStats;
   net_worth: number;
+  daily_snapshot?: DailySnapshot;
+  action_center?: ActionItem[];
+  budget_pulse?: BudgetPulse;
+  bill_risk?: BillRisk;
 }
 
 export interface MonthlySummary {
@@ -280,6 +322,25 @@ export function fetchDashboard(userId: string): Promise<DashboardData> {
   return get<DashboardData>(`/api/dashboard/${userId}`);
 }
 
+export function postDashboardEvent(
+  userId: string,
+  eventName: string,
+  eventPayload: Record<string, unknown> = {},
+): Promise<{ status: string }> {
+  return post<{ status: string }>("/api/dashboard/events", {
+    user_id: userId,
+    event_name: eventName,
+    event_payload: eventPayload,
+  });
+}
+
+export function patchPurchaseAnalysis(
+  analysisId: string,
+  corrections: { product?: string; price?: number; currency?: string },
+): Promise<Record<string, unknown>> {
+  return patch<Record<string, unknown>>(`/api/advisor/purchase-analysis/${analysisId}`, corrections);
+}
+
 export function fetchCards(userId: string): Promise<{ cards: VirtualCard[] }> {
   return get<{ cards: VirtualCard[] }>(`/api/cards/${userId}`);
 }
@@ -353,4 +414,62 @@ export function purchaseCheck(
   fd.append("user_id", userId);
   fd.append("image", imageFile);
   return postForm<PurchaseCheckResponse>("/api/advisor/purchase-check", fd);
+}
+
+// ── Advisor Voice Calls ──────────────────────────────────────
+
+export type AdvisorCallStatus = "calling" | "completed" | "no_answer" | "failed" | "mock";
+
+export interface AdvisorActionRequest {
+  type: string;
+  target_name: string;
+  user_consent_quote: string;
+  confidence: "high" | "medium" | "low";
+}
+
+export interface AdvisorCallSummary {
+  _id: string;
+  session_id: string;
+  mode: string;
+  status: AdvisorCallStatus;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  phone_last4: string;
+  summary: string | null;
+  key_topics: string[];
+  next_steps: string[];
+  action_requests: AdvisorActionRequest[];
+  safety_flags: string[];
+}
+
+export interface StartCallResponse {
+  success: boolean;
+  conversation_id: string;
+  session_id: string;
+  status: AdvisorCallStatus;
+  started_at: string;
+  phone_last4: string;
+  mock: boolean;
+}
+
+export function startAdvisorCall(userId: string): Promise<StartCallResponse> {
+  return post<StartCallResponse>("/api/advisor/call/start", { user_id: userId });
+}
+
+export function submitAdvisorCallResult(payload: {
+  conversation_id: string;
+  status: string;
+  transcript?: string;
+  duration_seconds?: number;
+  provider_payload?: Record<string, unknown>;
+}): Promise<{ message: string; conversation_id: string; summary_generated: boolean }> {
+  return post("/api/advisor/call-result", payload);
+}
+
+export function fetchAdvisorCalls(
+  userId: string,
+  limit = 5,
+): Promise<{ calls: AdvisorCallSummary[] }> {
+  return get<{ calls: AdvisorCallSummary[] }>(`/api/advisor/calls/${userId}?limit=${limit}`);
 }

@@ -33,6 +33,17 @@ for module_name in ["auth", "advisor", "cards", "alerts", "voice", "transactions
         print(f"Skipped router {module_name}: {exc}")
 
 
+@app.on_event("startup")
+async def _ensure_indexes():
+    from database import get_database
+    db = get_database()
+    try:
+        await db.purchase_analyses.create_index([("user_id", 1), ("created_at", -1)])
+        await db.dashboard_events.create_index([("user_id", 1), ("created_at", -1)])
+    except Exception as exc:
+        _logger.warning("Index creation skipped: %s", exc)
+
+
 @app.get("/api/health")
 async def health():
     return {"status": "ok"}

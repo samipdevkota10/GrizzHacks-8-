@@ -2,11 +2,24 @@ from datetime import datetime, timedelta
 
 from bson import ObjectId
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from database import get_database
 from objectid_util import parse_user_object_id
+from services.action_center import (
+    build_action_center,
+    build_budget_pulse,
+    build_bill_risk,
+    build_daily_snapshot,
+)
 
 router = APIRouter(prefix="/api", tags=["dashboard"])
+
+
+class DashboardEventPayload(BaseModel):
+    user_id: str
+    event_name: str
+    event_payload: dict = {}
 
 
 def serialize_doc(doc):
@@ -73,6 +86,9 @@ async def get_dashboard(user_id: str):
                 )
 
     budget = profile["monthly_budget"] if profile else 3500
+    monthly_income = profile.get("monthly_income", 4800) if profile else 4800
+    savings_goal = profile.get("savings_goal_monthly", 0) if profile else 0
+    net_worth = profile["net_worth"] if profile else 0
 
     days_in_month = (
         (now.replace(month=now.month % 12 + 1, day=1) - timedelta(days=1)).day
@@ -82,6 +98,38 @@ async def get_dashboard(user_id: str):
     days_passed = now.day
     avg_daily = month_spent / max(days_passed, 1)
     top_category = max(by_category.items(), key=lambda x: x[1]) if by_category else ("none", 0)
+
+    checking = next(
+        (a for a in accounts if a.get("is_primary_checking")), None
+    )
+    checking_balance = checking["balance"] if checking else 0
+
+    bill_risk = build_bill_risk(subscriptions, checking_balance, now)
+    user_name = user.get("name", "User")
+
+    daily_snapshot = build_daily_snapshot(
+        net_worth=net_worth,
+        net_worth_30d_ago=net_worth,
+        month_spent=month_spent,
+        monthly_budget=budget,
+        month_income=month_income,
+        month_income_30d_ago=0,
+        user_name=user_name,
+    )
+
+    action_center = build_action_center(
+        month_spent=month_spent,
+        monthly_budget=budget,
+        checking_balance=checking_balance,
+        due_30d=bill_risk["due_30d_total"],
+        at_risk_bills=bill_risk["at_risk_bills"],
+        subscriptions=subscriptions,
+        monthly_income=monthly_income,
+        savings_goal_monthly=savings_goal,
+        pending_alerts=pending_alerts,
+    )
+
+    budget_pulse = build_budget_pulse(month_spent, budget, now)
 
     return {
         "user": serialize_doc(user),
@@ -106,5 +154,23 @@ async def get_dashboard(user_id: str):
             "top_category_amount": round(top_category[1], 2),
             "days_until_paycheck": max(0, 15 - (now.day % 15)),
         },
-        "net_worth": profile["net_worth"] if profile else 0,
+        "net_worth": net_worth,
+        "daily_snapshot": daily_snapshot,
+        "action_center": action_center,
+        "budget_pulse": budget_pulse,
+        "bill_risk": bill_risk,
     }
+
+
+@router.post("/dashboard/events")
+async def post_dashboard_event(body: DashboardEventPayload):
+    db = get_database()
+    uid = parse_user_object_id(body.user_id)
+    doc = {
+        "user_id": uid,
+        "event_name": body.event_name,
+        "event_payload": body.event_payload,
+        "created_at": datetime.utcnow(),
+    }
+    await db.dashboard_events.insert_one(doc)
+    return {"status": "ok"}

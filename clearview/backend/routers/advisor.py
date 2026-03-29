@@ -8,6 +8,7 @@ from google.api_core.exceptions import ResourceExhausted
 
 from database import get_database
 from objectid_util import parse_user_object_id
+from services.advisor_caller import initiate_advisor_call
 from services.financial_context import build_financial_context
 from services.gemini_service import gemini_service
 
@@ -125,12 +126,62 @@ async def purchase_check(image: UploadFile = File(...), user_id: str = Form(...)
             "monthly_budget": context.get("monthly_budget", 0),
             "checking_balance": context.get("checking_balance", 0),
         },
+        "confidence": result.get("confidence"),
+        "corrected_by_user": False,
+        "original_extraction": None,
+        "correction_source": None,
         "created_at": now,
     }
     insert_result = await db.purchase_analyses.insert_one(analysis_doc)
     result["analysis_id"] = str(insert_result.inserted_id)
 
     return result
+
+
+@router.patch("/purchase-analysis/{analysis_id}")
+async def correct_purchase_analysis(analysis_id: str, body: dict):
+    """Let the user correct product name or price on a past analysis."""
+    db = get_database()
+    try:
+        doc = await db.purchase_analyses.find_one({"_id": ObjectId(analysis_id)})
+    except Exception:
+        raise HTTPException(400, "Invalid analysis_id format")
+
+    if not doc:
+        raise HTTPException(404, "Analysis not found")
+
+    update: dict = {}
+    if "product" in body:
+        if not doc.get("original_extraction"):
+            update["original_extraction"] = {
+                "product": doc.get("product"),
+                "price": doc.get("price"),
+                "currency": doc.get("currency"),
+            }
+        update["product"] = body["product"]
+    if "price" in body:
+        if not doc.get("original_extraction") and "original_extraction" not in update:
+            update["original_extraction"] = {
+                "product": doc.get("product"),
+                "price": doc.get("price"),
+                "currency": doc.get("currency"),
+            }
+        update["price"] = body["price"]
+    if "currency" in body:
+        update["currency"] = body["currency"]
+
+    if not update:
+        raise HTTPException(400, "Nothing to update")
+
+    update["corrected_by_user"] = True
+    update["correction_source"] = "dashboard"
+
+    await db.purchase_analyses.update_one(
+        {"_id": ObjectId(analysis_id)},
+        {"$set": update},
+    )
+    updated = await db.purchase_analyses.find_one({"_id": ObjectId(analysis_id)})
+    return _serialize(updated)
 
 
 @router.get("/purchase-history/{user_id}")
@@ -280,3 +331,114 @@ async def get_conversations(user_id: str, limit: int = 10):
     ).sort("started_at", -1).to_list(limit)
 
     return {"conversations": [_serialize(c) for c in convs]}
+
+
+# ── Advisor Voice Call Endpoints ──────────────────────────────
+
+
+@router.post("/call/start")
+async def start_advisor_call(body: dict):
+    """Initiate a personalized financial advisor outbound call."""
+    user_id = body.get("user_id")
+    if not user_id:
+        raise HTTPException(400, "user_id is required")
+
+    try:
+        result = await initiate_advisor_call(user_id)
+    except Exception as exc:
+        logger.exception("Advisor call failed: %s", exc)
+        raise HTTPException(502, f"Could not initiate call: {exc}")
+
+    if not result.get("success") and not result.get("mock"):
+        error = result.get("error", "Unknown error")
+        raise HTTPException(400, error)
+
+    return result
+
+
+@router.post("/call-result")
+async def advisor_call_result(body: dict):
+    """Receive call completion data and trigger summary extraction."""
+    conversation_id = body.get("conversation_id")
+    status = body.get("status", "completed")
+    transcript = body.get("transcript")
+    duration_seconds = body.get("duration_seconds")
+    provider_payload = body.get("provider_payload")
+
+    if not conversation_id:
+        raise HTTPException(400, "conversation_id is required")
+
+    db = get_database()
+    conv = await db.ai_conversations.find_one({"_id": ObjectId(conversation_id)})
+    if not conv:
+        conv = await db.ai_conversations.find_one({"session_id": conversation_id})
+    if not conv:
+        raise HTTPException(404, "Conversation not found")
+
+    now = datetime.utcnow()
+    update_fields: dict = {
+        "ended_at": now,
+        "status": status,
+    }
+    if duration_seconds is not None:
+        update_fields["duration_seconds"] = duration_seconds
+    if transcript:
+        update_fields["transcript"] = transcript
+    if provider_payload:
+        update_fields["provider_payload"] = provider_payload
+
+    if transcript and status == "completed":
+        try:
+            context = conv.get("financial_context_snapshot", {})
+            summary_data = await gemini_service.summarize_advisor_call(transcript, context)
+            if summary_data:
+                update_fields["summary"] = summary_data.get("summary", "")
+                update_fields["key_topics"] = summary_data.get("key_topics", [])
+                update_fields["next_steps"] = summary_data.get("next_steps", [])
+                update_fields["action_requests"] = summary_data.get("action_requests", [])
+                update_fields["safety_flags"] = summary_data.get("safety_flags", [])
+        except Exception as exc:
+            logger.warning("Transcript summarization failed: %s", exc)
+            update_fields["summary"] = "Call completed but summary generation failed."
+
+    doc_id = conv["_id"]
+    await db.ai_conversations.update_one(
+        {"_id": doc_id},
+        {"$set": update_fields},
+    )
+
+    return {
+        "message": "Call result recorded",
+        "conversation_id": str(doc_id),
+        "summary_generated": "summary" in update_fields,
+    }
+
+
+@router.get("/calls/{user_id}")
+async def get_advisor_calls(user_id: str, limit: int = 5):
+    """List recent advisor phone calls for a user."""
+    db = get_database()
+    uid = parse_user_object_id(user_id)
+
+    projection = {
+        "_id": 1,
+        "session_id": 1,
+        "mode": 1,
+        "status": 1,
+        "started_at": 1,
+        "ended_at": 1,
+        "duration_seconds": 1,
+        "phone_last4": 1,
+        "summary": 1,
+        "key_topics": 1,
+        "next_steps": 1,
+        "action_requests": 1,
+        "safety_flags": 1,
+    }
+
+    calls = await db.ai_conversations.find(
+        {"user_id": uid, "mode": "advisor_call"},
+        projection,
+    ).sort("started_at", -1).to_list(limit)
+
+    return {"calls": [_serialize(c) for c in calls]}

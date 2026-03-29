@@ -25,9 +25,11 @@ import {
   ChevronDown,
   ChevronUp,
   Plus,
+  Pencil,
+  Check,
 } from "lucide-react";
 
-import { getUserId } from "@/lib/api";
+import { getUserId, patchPurchaseAnalysis } from "@/lib/api";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
 
@@ -49,6 +51,8 @@ type AnalysisResult = {
   alternatives: Alternative[];
   total_cost_note: string | null;
   thirty_day_suggestion: boolean;
+  confidence?: number | null;
+  corrected_by_user?: boolean;
 };
 
 type ReceiptItem = {
@@ -75,6 +79,8 @@ type HistoryItem = {
   price: number;
   verdict: string;
   created_at: string;
+  confidence?: number | null;
+  corrected_by_user?: boolean;
 };
 
 type WishlistItem = {
@@ -121,6 +127,11 @@ export default function PurchaseAnalyzer() {
   const [showHistory, setShowHistory] = useState(false);
 
   const [userStats, setUserStats] = useState({ netHourlyRate: 0, budgetRemaining: 0, monthlySavings: 0 });
+
+  const [editing, setEditing] = useState(false);
+  const [editProduct, setEditProduct] = useState("");
+  const [editPrice, setEditPrice] = useState("");
+  const [saving, setSaving] = useState(false);
 
   const uid = typeof window !== "undefined" ? getUserId() : "";
 
@@ -426,12 +437,98 @@ export default function PurchaseAnalyzer() {
             <div className="col-span-2 rounded-2xl bg-card border border-border p-6 space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="text-lg font-bold text-foreground">{purchaseResult.product}</h3>
-                  <p className="text-2xl font-bold text-foreground tabular-nums mt-1">
-                    ${purchaseResult.price.toFixed(2)}
-                  </p>
+                  {editing ? (
+                    <div className="space-y-2">
+                      <input
+                        value={editProduct}
+                        onChange={(e) => setEditProduct(e.target.value)}
+                        className="text-lg font-bold text-foreground bg-muted/50 rounded-lg px-3 py-1 border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 w-full"
+                        placeholder="Product name"
+                      />
+                      <div className="flex items-center gap-1">
+                        <span className="text-2xl font-bold text-foreground">$</span>
+                        <input
+                          value={editPrice}
+                          onChange={(e) => setEditPrice(e.target.value)}
+                          type="number"
+                          step="0.01"
+                          className="text-2xl font-bold text-foreground bg-muted/50 rounded-lg px-3 py-1 border border-border focus:outline-none focus:ring-2 focus:ring-primary/30 w-32 tabular-nums"
+                          placeholder="0.00"
+                        />
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          disabled={saving}
+                          onClick={async () => {
+                            if (!purchaseResult.analysis_id) return;
+                            setSaving(true);
+                            try {
+                              const corrections: { product?: string; price?: number } = {};
+                              if (editProduct && editProduct !== purchaseResult.product)
+                                corrections.product = editProduct;
+                              const parsedPrice = parseFloat(editPrice);
+                              if (!isNaN(parsedPrice) && parsedPrice !== purchaseResult.price)
+                                corrections.price = parsedPrice;
+                              if (Object.keys(corrections).length > 0) {
+                                await patchPurchaseAnalysis(purchaseResult.analysis_id, corrections);
+                                setPurchaseResult({
+                                  ...purchaseResult,
+                                  product: corrections.product ?? purchaseResult.product,
+                                  price: corrections.price ?? purchaseResult.price,
+                                  corrected_by_user: true,
+                                });
+                                loadHistory();
+                              }
+                            } catch { /* silent */ }
+                            setSaving(false);
+                            setEditing(false);
+                          }}
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:opacity-90 disabled:opacity-60"
+                        >
+                          <Check size={12} /> Save
+                        </button>
+                        <button
+                          onClick={() => setEditing(false)}
+                          className="px-3 py-1.5 rounded-lg bg-muted text-xs font-medium text-muted-foreground hover:text-foreground"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-lg font-bold text-foreground">{purchaseResult.product}</h3>
+                        {purchaseResult.confidence != null && (
+                          <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                            purchaseResult.confidence >= 80 ? "bg-green-50 text-green-700"
+                              : purchaseResult.confidence >= 50 ? "bg-amber-50 text-amber-700"
+                              : "bg-red-50 text-red-700"
+                          }`}>
+                            {purchaseResult.confidence}% conf.
+                          </span>
+                        )}
+                        {purchaseResult.corrected_by_user && (
+                          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600">Edited</span>
+                        )}
+                      </div>
+                      <p className="text-2xl font-bold text-foreground tabular-nums mt-1">
+                        ${purchaseResult.price.toFixed(2)}
+                      </p>
+                      <button
+                        onClick={() => {
+                          setEditProduct(purchaseResult.product);
+                          setEditPrice(purchaseResult.price.toFixed(2));
+                          setEditing(true);
+                        }}
+                        className="mt-1 inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-primary transition-colors"
+                      >
+                        <Pencil size={11} /> Looks wrong? Edit
+                      </button>
+                    </>
+                  )}
                 </div>
-                <VerdictBadge verdict={purchaseResult.verdict} />
+                {!editing && <VerdictBadge verdict={purchaseResult.verdict} />}
               </div>
 
               {/* Hours of Work */}

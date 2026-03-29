@@ -105,7 +105,14 @@ export default function TransactionsPage() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="text-center py-8 text-muted-foreground text-sm">No transactions found</td>
+                <td colSpan={4} className="text-center py-8">
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {transactions.length === 0 ? "No transactions yet" : "No matching transactions"}
+                  </p>
+                  {transactions.length === 0 && (
+                    <a href="/onboarding" className="text-xs text-primary hover:underline">Connect accounts in onboarding →</a>
+                  )}
+                </td>
               </tr>
             )}
           </tbody>

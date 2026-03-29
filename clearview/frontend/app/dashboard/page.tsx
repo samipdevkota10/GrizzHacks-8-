@@ -31,10 +31,16 @@ import {
   getUserId,
   clearAuth,
   fetchDashboard,
+  postDashboardEvent,
   type DashboardData,
   type Transaction,
   type UpcomingBill,
+  type ActionItem,
 } from "@/lib/api";
+import { DailySnapshotBanner } from "@/components/dashboard/DailySnapshotBanner";
+import { ActionCenterCard } from "@/components/dashboard/ActionCenterCard";
+import { BudgetPulseCard } from "@/components/dashboard/BudgetPulseCard";
+import { BillsRiskCard } from "@/components/dashboard/BillsRiskCard";
 
 const CATEGORY_COLORS: Record<string, string> = {
   food: "#F97316",
@@ -168,6 +174,13 @@ export default function DashboardOverview() {
     monthlyTrend.push({ month: label, income: Math.round(income), spending: Math.round(spending) });
   }
 
+  const handleActionClick = (action: ActionItem) => {
+    const uid = getUserId();
+    if (uid) {
+      postDashboardEvent(uid, "action_click", { action_id: action.id, action_type: action.type }).catch(() => {});
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -178,6 +191,12 @@ export default function DashboardOverview() {
           Here&apos;s your financial overview for {monthNames[now.getMonth()]} {now.getFullYear()}
         </p>
       </div>
+
+      {data.daily_snapshot && <DailySnapshotBanner snapshot={data.daily_snapshot} />}
+
+      {data.action_center && data.action_center.length > 0 && (
+        <ActionCenterCard actions={data.action_center} onActionClick={handleActionClick} />
+      )}
 
       <div className="grid grid-cols-4 gap-4">
         <StatCard
@@ -279,6 +298,15 @@ export default function DashboardOverview() {
           )}
         </div>
       </div>
+
+      {(data.budget_pulse || data.bill_risk) && (
+        <div className="grid grid-cols-2 gap-4">
+          {data.budget_pulse && (
+            <BudgetPulseCard pulse={data.budget_pulse} budget={ms.budget} />
+          )}
+          {data.bill_risk && <BillsRiskCard risk={data.bill_risk} />}
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-2xl bg-card border border-border p-5">

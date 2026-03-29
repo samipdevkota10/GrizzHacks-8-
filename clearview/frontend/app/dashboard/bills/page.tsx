@@ -85,7 +85,10 @@ export default function BillsPage() {
                 <p className="text-sm font-medium text-foreground tabular-nums">${bill.amount.toFixed(2)}</p>
               </div>
             )) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">No upcoming bills</p>
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground mb-2">No upcoming bills detected</p>
+                <a href="/onboarding" className="text-xs text-primary hover:underline">Connect accounts in onboarding →</a>
+              </div>
             )}
           </div>
         </div>
@@ -111,7 +114,10 @@ export default function BillsPage() {
                 </div>
               </div>
             )) : (
-              <p className="text-sm text-muted-foreground py-4 text-center">No active subscriptions</p>
+              <div className="text-center py-8">
+                <p className="text-sm text-muted-foreground mb-2">No active subscriptions</p>
+                <a href="/onboarding" className="text-xs text-primary hover:underline">Connect accounts to detect subscriptions →</a>
+              </div>
             )}
           </div>
         </div>
