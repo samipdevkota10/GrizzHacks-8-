@@ -18,8 +18,8 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = ""
     STRIPE_CARDHOLDER_ID: str = ""
     FRONTEND_URL: str = "http://localhost:3000"
-    # Comma-separated browser origins for CORS (e.g. Vercel prod + previews).
-    # If empty, allows FRONTEND_URL plus local dev URLs below.
+    # Comma-separated *extra* CORS origins (merged with the base list below).
+    # Do not use this to replace defaults — base always includes production Vercel + localhost.
     CORS_ORIGINS: str = ""
     # Also allow any origin matching this regex (Vercel preview deploys use unique subdomains).
     # Set to empty in env to disable: CORS_ORIGIN_REGEX=
@@ -41,16 +41,14 @@ class Settings(BaseSettings):
     )
 
     def cors_allow_origins(self) -> list[str]:
+        items = [
+            self.FRONTEND_URL.strip(),
+            "https://grizz-hacks-8.vercel.app",
+            "http://localhost:3000",
+            "http://localhost:3001",
+        ]
         if self.CORS_ORIGINS.strip():
-            items = [o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip()]
-        else:
-            items = [
-                self.FRONTEND_URL.strip(),
-                # Deployed Vercel app; keeps CORS working if Railway FRONTEND_URL is wrong
-                "https://grizz-hacks-8.vercel.app",
-                "http://localhost:3000",
-                "http://localhost:3001",
-            ]
+            items.extend(o.strip() for o in self.CORS_ORIGINS.split(",") if o.strip())
         seen: set[str] = set()
         out: list[str] = []
         for o in items:

@@ -7,7 +7,8 @@ from config import Settings
 
 _logger = logging.getLogger(__name__)
 settings = Settings()
-app = FastAPI(title="VeraFund API", version="1.0.0")
+# Avoid /path/ → /path redirects that can downgrade to http and break CORS preflight POST flows.
+app = FastAPI(title="VeraFund API", version="1.0.0", redirect_slashes=False)
 
 _cors_kwargs: dict = {
     "allow_origins": settings.cors_allow_origins(),
