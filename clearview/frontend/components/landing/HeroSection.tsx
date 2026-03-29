@@ -25,7 +25,7 @@ const HeroSection = () => {
           className="section-badge mb-6"
         >
           <Sparkles size={14} className="text-primary" />
-          Empower your financial growth
+          Meet Vera, your AI financial guardian
         </motion.div>
 
         {/* Heading */}
@@ -35,11 +35,11 @@ const HeroSection = () => {
           transition={{ duration: 0.7, delay: 0.15 }}
           className="section-heading max-w-3xl mb-5"
         >
-          Smart Finance Solutions
+          Your Money, Protected
           <br />
-          for a{" "}
+          by{" "}
           <span className="font-serif-display italic font-normal">
-            Secure Future
+            AI You Can Talk To
           </span>
         </motion.h1>
 
@@ -50,8 +50,7 @@ const HeroSection = () => {
           transition={{ duration: 0.6, delay: 0.3 }}
           className="text-muted-foreground max-w-md mb-8 text-base"
         >
-          Manage your money, track your growth, and make confident financial
-          decisions with one powerful platform.
+          Vera monitors every transaction, calls you instantly when fraud is detected, and answers any financial question — by voice, in real time.
         </motion.p>
 
         {/* Buttons */}
@@ -86,10 +85,10 @@ const HeroSection = () => {
           className="flex items-center justify-between w-full max-w-4xl mb-4"
         >
           <span className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
-            [ 1000+ Trusted Clients ]
+            [ AI-Powered Fraud Protection ]
           </span>
           <span className="text-xs font-medium tracking-widest uppercase text-muted-foreground">
-            @2002-2026
+            © 2026 VeraFund
           </span>
         </motion.div>
 

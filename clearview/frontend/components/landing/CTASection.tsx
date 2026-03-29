@@ -42,7 +42,7 @@ const CTASection = () => {
               transition={{ duration: 0.6, delay: 0.35 }}
               className="text-sm text-muted-foreground mb-8"
             >
-              Reach users managing money smarter and safer.
+              Join thousands of people who let Vera handle the hard parts of personal finance.
             </motion.p>
 
             {/* Avatars + Stats */}
@@ -58,8 +58,8 @@ const CTASection = () => {
                 <img src="/images/avatar3.png" alt="" className="w-10 h-10 rounded-full border-2 border-card" />
               </div>
               <div className="flex items-center gap-4 text-sm">
-                <span className="font-bold text-foreground">100k+ Users</span>
-                <span className="font-bold text-foreground">4.6 Rating</span>
+                <span className="font-bold text-foreground">AI-Powered</span>
+                <span className="font-bold text-foreground">Real-Time Protection</span>
               </div>
             </motion.div>
 

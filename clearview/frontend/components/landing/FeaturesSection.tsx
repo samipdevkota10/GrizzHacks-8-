@@ -66,24 +66,23 @@ const FeaturesSection = () => {
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <AnimatedBlock className="text-center mb-16">
-          <span className="section-badge mb-4 inline-flex">[ Exclusive Features ]</span>
+          <span className="section-badge mb-4 inline-flex">[ What VeraFund Does ]</span>
           <h2 className="section-heading mt-4">
-            Everything you
+            Everything You Need
             <br />
-            Need to{" "}
-            <span className="font-serif-display italic font-normal">Manage</span>{" "}
-            finance
+            to Stay in{" "}
+            <span className="font-serif-display italic font-normal">Control</span>
           </h2>
         </AnimatedBlock>
 
         {/* Feature Grid - Row 1 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-          {/* Crypto Wallet - Left */}
+          {/* AI Fraud Detection - Left */}
           <AnimatedBlock delay={0.1} className="relative rounded-3xl bg-warm border border-border overflow-hidden p-8 pb-0 min-h-[440px] flex flex-col">
             <div className="flex-1 relative z-10">
-              <h3 className="text-xl font-bold text-foreground mb-2">Crypto Wallet</h3>
+              <h3 className="text-xl font-bold text-foreground mb-2">AI Fraud Detection</h3>
               <p className="text-sm text-muted-foreground max-w-xs">
-                Secure offline storage for cryptocurrency private keys.
+                Vera analyzes every transaction in real time. If something looks suspicious, she calls you immediately to verify before it goes through.
               </p>
             </div>
             {/* Decorative elements */}
@@ -110,12 +109,12 @@ const FeaturesSection = () => {
               <div className="flex-1">
                 <h3 className="text-xl font-bold text-foreground mb-2">Smart Financial Dashboard</h3>
                 <p className="text-sm text-muted-foreground max-w-sm">
-                  Get a real time overview of income, expenses, balances, and performance in one clean dashboard.
+                  Get a real-time overview of income, expenses, budgets, and cash flow predictions — all in one clean dashboard.
                 </p>
               </div>
               <div className="flex flex-col items-end gap-2">
                 <img src="/images/feature-badge.png" alt="" className="w-20" />
-                <span className="text-primary font-bold text-lg">+4578</span>
+                <span className="text-primary font-bold text-sm uppercase tracking-wide">Live</span>
               </div>
             </div>
             <div className="mt-3">
@@ -135,12 +134,12 @@ const FeaturesSection = () => {
 
         {/* Feature Grid - Row 2 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Multi Account Management */}
+          {/* AI Purchase Advisor */}
           <AnimatedBlock delay={0.3} className="relative rounded-3xl bg-warm border border-border overflow-hidden p-8 pb-0 min-h-[440px] flex flex-col">
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-foreground mb-2">Multi Account Management</h3>
+              <h3 className="text-xl font-bold text-foreground mb-2">AI Purchase Advisor</h3>
               <p className="text-sm text-muted-foreground max-w-sm">
-                Manage multiple bank accounts and wallets from one platform and its more than secure others bank. We give guaranty Every users.
+                Before you buy anything, ask Vera. She analyzes the impact on your budget, goals, and spending patterns — and tells you if it's worth it.
               </p>
             </div>
             <div className="relative mt-6 flex justify-center items-end">
@@ -152,12 +151,12 @@ const FeaturesSection = () => {
             </div>
           </AnimatedBlock>
 
-          {/* Secure Transactions */}
+          {/* Voice-Powered Assistant */}
           <AnimatedBlock delay={0.4} className="relative rounded-3xl bg-warm border border-border overflow-hidden p-8 pb-0 min-h-[440px] flex flex-col">
             <div className="flex-1">
-              <h3 className="text-xl font-bold text-foreground mb-2">Secure Transactions</h3>
+              <h3 className="text-xl font-bold text-foreground mb-2">Voice-Powered Assistant</h3>
               <p className="text-sm text-muted-foreground max-w-sm">
-                Visualize growth and performance with real-time insights. Monitor key metrics, track trends, and make smarter.
+                Talk to Vera anytime through the app. She knows your finances, tracks your bills, and gives personalized advice — no typing required.
               </p>
             </div>
             <div className="relative mt-6 flex justify-center gap-4 items-end">

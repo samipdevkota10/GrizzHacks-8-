@@ -17,13 +17,12 @@ const IntegrationSection = () => {
           transition={{ duration: 0.7 }}
           className="text-center mb-16"
         >
-          <span className="section-badge mb-4 inline-flex">[ Integration ]</span>
+          <span className="section-badge mb-4 inline-flex">[ Technology Stack ]</span>
           <h2 className="section-heading mt-4">
-            Seamless Integrations with
+            Powered by{" "}
+            <span className="font-serif-display italic font-normal">Industry-Leading</span>
             <br />
-            Your{" "}
-            <span className="font-serif-display italic font-normal">Favorite</span>{" "}
-            Tools
+            Technology
           </h2>
         </motion.div>
 

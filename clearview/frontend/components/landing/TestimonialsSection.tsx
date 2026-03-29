@@ -6,29 +6,29 @@ import { ChevronLeft, ChevronRight, Star } from "lucide-react";
 
 const testimonials = [
   {
-    quote: "This platform helped me understand my finances clearly. Everything is simple and well organized. I feel more confident making financial decisions now.",
-    name: "Alex Morgan",
-    role: "Small Business Owner",
+    quote: "Vera called me at 2 AM when someone tried to use my card overseas. I denied it on the spot — the charge was blocked before I even opened the app.",
+    name: "Jordan Hayes",
+    role: "College Student",
     img: "/images/testimonial1.png",
     stars: 5,
   },
   {
-    quote: "Managing multiple accounts is now stress free and incredibly efficient. The reports are extremely helpful, providing insights that simplify decision making.",
-    name: "Sarah John",
-    role: "Freelancer",
+    quote: "I used to stress about every purchase. Now I just ask Vera if I can afford it, and she breaks it down — budget impact, goal delay, everything.",
+    name: "Priya Malhotra",
+    role: "Freelance Designer",
     img: "/images/testimonial2.png",
-    stars: 4,
+    stars: 5,
   },
   {
-    quote: "The experience is incredibly smooth and well designed. I especially like how transparent everything feels, from daily activity to overall insights and user engagement.",
-    name: "David Mike",
-    role: "Independent Consultant",
+    quote: "The voice advisor feels like talking to a real financial planner. I asked about my spending habits and Vera gave me a breakdown with actual advice.",
+    name: "Marcus Chen",
+    role: "Graduate Student",
     img: "/images/testimonial3.png",
     stars: 5,
   },
   {
-    quote: "Everything feels simple and easy to understand. I can track my spending clearly and manage my money without feeling overwhelmed.",
-    name: "Michael Reed",
+    quote: "I connected my bank, and within a day Vera had already caught a subscription I forgot about and a price increase on my streaming service.",
+    name: "Taylor Williams",
     role: "Small Business Owner",
     img: "/images/testimonial4.png",
     stars: 4,
@@ -44,7 +44,7 @@ const TestimonialsSection = () => {
   const prev = () => setCurrent((c) => (c - 1 + testimonials.length) % testimonials.length);
 
   return (
-    <section className="py-20 px-4 bg-background" ref={ref}>
+    <section id="testimonials" className="py-20 px-4 bg-background" ref={ref}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <motion.div

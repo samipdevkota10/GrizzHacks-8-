@@ -5,11 +5,10 @@ import { motion } from "motion/react";
 import { Menu, X } from "lucide-react";
 
 const navLinks = [
-  { label: "About", href: "#how-it-works" },
+  { label: "How It Works", href: "#how-it-works" },
   { label: "Features", href: "#features" },
-  { label: "Pricing", href: "#pricing" },
   { label: "Integration", href: "#integration" },
-  { label: "Blog", href: "#blog" },
+  { label: "Testimonials", href: "#testimonials" },
 ];
 
 const Navbar = () => {
@@ -88,10 +87,10 @@ const Navbar = () => {
               </a>
             ))}
             <a
-              href="#contact"
+              href="/auth"
               className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2.5 text-sm font-medium text-primary-foreground"
             >
-              Contact Us
+              Get Started
             </a>
           </div>
         </motion.div>

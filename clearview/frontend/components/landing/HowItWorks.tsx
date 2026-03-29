@@ -7,19 +7,19 @@ const steps = [
   {
     num: "1",
     title: "Create Your Account",
-    desc: "Sign up in minutes with a secure and simple registration process.",
+    desc: "Sign up in under a minute. No bank login required to start — add your details and Vera begins learning your finances.",
     img: "/images/step1.png",
   },
   {
     num: "2",
     title: "Connect Your Data",
-    desc: "Link bank accounts or add financial data manually with full control.",
+    desc: "Link your bank accounts through Plaid, or add transactions manually. Vera starts monitoring instantly.",
     img: "/images/step2.png",
   },
   {
     num: "3",
-    title: "Track and Improve",
-    desc: "Monitor performance, analyze reports, and make smarter financial decisions.",
+    title: "Let Vera Protect You",
+    desc: "Vera watches every transaction, flags fraud, calls you to verify suspicious charges, and gives personalized financial advice on demand.",
     img: "/images/step3.png",
   },
 ];

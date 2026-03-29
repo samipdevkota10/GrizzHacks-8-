@@ -37,7 +37,7 @@ export function SearchBar() {
     searchDashboard(uid, q)
       .then((res) => {
         setResults(res.results);
-        setOpen(res.results.length > 0);
+        setOpen(true);
         setSelectedIdx(-1);
       })
       .catch(() => setResults([]))
