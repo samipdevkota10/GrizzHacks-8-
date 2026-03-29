@@ -1,9 +1,31 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Search } from "lucide-react";
+import { Search, ShieldAlert, ShieldOff, ShieldCheck } from "lucide-react";
 import { getUserId, fetchTransactions, type Transaction } from "@/lib/api";
 import { MerchantLogo } from "@/components/MerchantLogo";
+
+function TxStatusBadge({ status, anomalyFlag }: { status?: string; anomalyFlag?: boolean }) {
+  if (status === "denied")
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">
+        <ShieldOff size={12} /> Blocked
+      </span>
+    );
+  if (status === "pending_review")
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400">
+        <ShieldAlert size={12} /> Pending Review
+      </span>
+    );
+  if (anomalyFlag)
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
+        <ShieldAlert size={12} /> Flagged
+      </span>
+    );
+  return null;
+}
 
 export default function TransactionsPage() {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -78,6 +100,7 @@ export default function TransactionsPage() {
               <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3">Transaction</th>
               <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3">Category</th>
               <th className="text-left text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3">Date</th>
+              <th className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3">Status</th>
               <th className="text-right text-xs font-medium text-muted-foreground uppercase tracking-wide px-5 py-3">Amount</th>
             </tr>
           </thead>
@@ -98,6 +121,9 @@ export default function TransactionsPage() {
                 <td className="px-5 py-3.5 text-sm text-muted-foreground">
                   {new Date(tx.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                 </td>
+                <td className="px-5 py-3.5 text-center">
+                  <TxStatusBadge status={tx.status} anomalyFlag={tx.anomaly_flag} />
+                </td>
                 <td className={`px-5 py-3.5 text-right text-sm font-medium tabular-nums ${tx.amount > 0 ? "text-green-600" : "text-foreground"}`}>
                   {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}
                 </td>
@@ -105,7 +131,7 @@ export default function TransactionsPage() {
             ))}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={4} className="text-center py-8">
+                <td colSpan={5} className="text-center py-8">
                   <p className="text-sm text-muted-foreground mb-2">
                     {transactions.length === 0 ? "No transactions yet" : "No matching transactions"}
                   </p>

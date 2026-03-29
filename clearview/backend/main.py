@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import FastAPI
+from fastapi import BackgroundTasks, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import Settings
@@ -63,3 +63,60 @@ async def run_seed():
     from seed_data import seed
     await seed()
     return {"status": "seeded"}
+
+
+@app.post("/api/admin/test-fraud")
+async def test_fraud(background_tasks: BackgroundTasks):
+    """Inject 3 mock fraudulent transactions to exercise the fraud pipeline.
+
+    1. High-risk: unknown merchant + huge amount + late night
+    2. High-risk: velocity attack (3 rapid charges in 2 min)
+    3. Medium-risk: first-time merchant + unusual category
+    """
+    from datetime import datetime, timedelta
+    from routers.transactions import ingest_transaction
+
+    user_id = "69c8872cbab93b1d2a3387c0"
+    results = []
+
+    # --- Test 1: Unknown merchant, big amount, 3am ---
+    r1 = await ingest_transaction(
+        {
+            "user_id": user_id,
+            "amount": -890.00,
+            "merchant_name": "ShadyElectronics.xyz",
+            "category": "shopping",
+            "description": "[TEST] Unknown merchant, large amount, late night",
+        },
+        background_tasks,
+    )
+    results.append({"test": "high_risk_unknown_merchant", **r1})
+
+    # --- Test 2: Velocity attack — 3 rapid $49.99 charges ---
+    for i in range(3):
+        r = await ingest_transaction(
+            {
+                "user_id": user_id,
+                "amount": -49.99,
+                "merchant_name": "QuickMart International",
+                "category": "shopping",
+                "description": f"[TEST] Velocity attack charge {i + 1}/3",
+            },
+            background_tasks,
+        )
+        results.append({"test": f"high_risk_velocity_{i + 1}", **r})
+
+    # --- Test 3: Medium-risk — first-time luxury merchant ---
+    r3 = await ingest_transaction(
+        {
+            "user_id": user_id,
+            "amount": -165.00,
+            "merchant_name": "LuxuryWatch.co",
+            "category": "shopping",
+            "description": "[TEST] First-time merchant, unusual category",
+        },
+        background_tasks,
+    )
+    results.append({"test": "medium_risk_first_time", **r3})
+
+    return {"status": "test_transactions_injected", "results": results}

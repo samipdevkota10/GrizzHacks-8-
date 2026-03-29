@@ -9,6 +9,8 @@ import {
   ArrowDownLeft,
   ArrowUpRight,
   Shield,
+  ShieldAlert,
+  ShieldOff,
   Plane,
   GraduationCap,
   Target,
@@ -98,6 +100,28 @@ function StatCard({
       </div>
     </div>
   );
+}
+
+function TxStatusBadge({ status, anomalyFlag }: { status?: string; anomalyFlag?: boolean }) {
+  if (status === "denied")
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400">
+        <ShieldOff size={10} /> Blocked
+      </span>
+    );
+  if (status === "pending_review")
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400">
+        <ShieldAlert size={10} /> Pending
+      </span>
+    );
+  if (anomalyFlag)
+    return (
+      <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400">
+        <ShieldAlert size={10} /> Flagged
+      </span>
+    );
+  return null;
 }
 
 export default function DashboardOverview() {
@@ -377,6 +401,7 @@ export default function DashboardOverview() {
                     <p className="text-sm font-medium text-foreground truncate">{tx.merchant_name}</p>
                     <p className="text-xs text-muted-foreground">{tx.category}</p>
                   </div>
+                  <TxStatusBadge status={tx.status} anomalyFlag={tx.anomaly_flag} />
                   <div className="text-right">
                     <p className={`text-sm font-medium tabular-nums ${tx.amount > 0 ? "text-green-600" : "text-foreground"}`}>
                       {tx.amount > 0 ? "+" : ""}${Math.abs(tx.amount).toFixed(2)}

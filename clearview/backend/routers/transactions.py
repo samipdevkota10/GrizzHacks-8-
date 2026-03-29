@@ -134,6 +134,7 @@ async def ingest_transaction(body: dict, background_tasks: BackgroundTasks):
 
     fraud_alert_id = None
     if flagged:
+        severity = detection["severity"]
         alert_doc = {
             "_id": ObjectId(),
             "user_id": uid,
@@ -143,7 +144,9 @@ async def ingest_transaction(body: dict, background_tasks: BackgroundTasks):
             "merchant_name": merchant_name,
             "category": category,
             "reason": detection["reason"],
-            "severity": detection["severity"],
+            "severity": severity,
+            "risk_score": detection.get("risk_score"),
+            "signals": detection.get("signals"),
             "status": "pending",
             "call_conversation_id": None,
             "call_sid": None,
@@ -160,17 +163,32 @@ async def ingest_transaction(body: dict, background_tasks: BackgroundTasks):
             {"$set": {"anomaly_alert_id": fraud_alert_id}},
         )
 
-        background_tasks.add_task(
-            _handle_fraud_call,
-            user_id=user_id,
-            transaction_id=tx_id,
-            fraud_alert_id=fraud_alert_id,
-            amount=amount,
-            merchant_name=merchant_name,
-            category=category,
-            reason=detection["reason"],
-            severity=detection["severity"],
-        )
+        if severity == "high":
+            background_tasks.add_task(
+                _handle_fraud_call,
+                user_id=user_id,
+                transaction_id=tx_id,
+                fraud_alert_id=fraud_alert_id,
+                amount=amount,
+                merchant_name=merchant_name,
+                category=category,
+                reason=detection["reason"],
+                severity=severity,
+            )
+        else:
+            await db.notifications.insert_one({
+                "_id": ObjectId(),
+                "user_id": uid,
+                "type": "fraud_alert",
+                "title": f"Suspicious transaction at {merchant_name}",
+                "message": detection["reason"],
+                "severity": severity,
+                "risk_score": detection.get("risk_score"),
+                "fraud_alert_id": fraud_alert_id,
+                "transaction_id": tx_id,
+                "is_read": False,
+                "created_at": now,
+            })
 
     return {
         "transaction_id": tx_id,

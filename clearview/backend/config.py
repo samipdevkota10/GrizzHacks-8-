@@ -27,7 +27,6 @@ class Settings(BaseSettings):
 
     ELEVENLABS_PHONE_NUMBER_ID: str = ""
     USER_PHONE_NUMBER: str = ""
-    FRAUD_AMOUNT_THRESHOLD: float = 200.0
     FRAUD_OUTBOUND_USE_FIRST_MESSAGE: bool = True
     BACKEND_PUBLIC_URL: str = ""
     PLAID_CLIENT_ID: str = ""
