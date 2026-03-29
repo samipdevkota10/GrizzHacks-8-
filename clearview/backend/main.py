@@ -25,7 +25,7 @@ from routers import dashboard
 
 app.include_router(dashboard.router)
 
-for module_name in ["auth", "advisor", "cards", "alerts", "voice", "transactions", "vera_agent", "subscriptions", "blockchain", "plaid"]:
+for module_name in ["auth", "advisor", "cards", "alerts", "voice", "transactions", "vera_agent", "subscriptions", "blockchain", "plaid", "notifications"]:
     try:
         mod = __import__(f"routers.{module_name}", fromlist=["router"])
         app.include_router(mod.router)
@@ -40,6 +40,7 @@ async def _ensure_indexes():
     try:
         await db.purchase_analyses.create_index([("user_id", 1), ("created_at", -1)])
         await db.dashboard_events.create_index([("user_id", 1), ("created_at", -1)])
+        await db.notifications.create_index([("user_id", 1), ("is_read", 1), ("created_at", -1)])
     except Exception as exc:
         _logger.warning("Index creation skipped: %s", exc)
 

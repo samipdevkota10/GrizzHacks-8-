@@ -12,12 +12,13 @@ import {
   Receipt,
   Target,
   LogOut,
-  Bell,
   Search,
   UserCircle,
   ChevronUp,
 } from "lucide-react";
-import { getUserId, getToken, clearAuth, fetchDashboard } from "@/lib/api";
+import { getUserId, getToken, clearAuth, fetchDashboard, type AppNotification } from "@/lib/api";
+import { NotificationPanel } from "@/components/NotificationPanel";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [user, setUser] = useState<{ name: string; email: string; avatar_url: string | null } | null>(null);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [alertCount, setAlertCount] = useState(0);
   const [dateLabel, setDateLabel] = useState<{ full: string; day: string } | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -74,7 +76,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         email: u.email || "",
         avatar_url: u.avatar_url || null,
       });
-      setAlertCount(d.pending_alerts.length + d.notifications.length);
+      const allNotifs = (d.notifications ?? []) as AppNotification[];
+      setNotifications(allNotifs);
+      const unread = allNotifs.filter((n) => !n.is_read).length + d.pending_alerts.length;
+      setAlertCount(unread);
     }).catch((err: unknown) => {
       // If user not found (stale localStorage after a reseed), clear auth and redirect
       const msg = err instanceof Error ? err.message : "";
@@ -181,14 +186,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             />
           </div>
           <div className="flex items-center gap-4" suppressHydrationWarning>
-            <button className="relative w-9 h-9 rounded-xl bg-background border border-border flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors">
-              <Bell size={16} />
-              {alertCount > 0 && (
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full text-[10px] font-bold text-primary-foreground flex items-center justify-center">
-                  {alertCount}
-                </span>
-              )}
-            </button>
+            <ThemeToggle />
+            <NotificationPanel
+              initialNotifications={notifications}
+              initialUnreadCount={alertCount}
+            />
             <div className="text-right" suppressHydrationWarning>
               <p className="text-sm font-medium text-foreground" suppressHydrationWarning>
                 {dateLabel?.full ?? ""}

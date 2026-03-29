@@ -41,6 +41,7 @@ import { DailySnapshotBanner } from "@/components/dashboard/DailySnapshotBanner"
 import { ActionCenterCard } from "@/components/dashboard/ActionCenterCard";
 import { BudgetPulseCard } from "@/components/dashboard/BudgetPulseCard";
 import { BillsRiskCard } from "@/components/dashboard/BillsRiskCard";
+import { useChartColors } from "@/lib/useChartColors";
 
 const CATEGORY_COLORS: Record<string, string> = {
   food: "#F97316",
@@ -88,6 +89,7 @@ function StatCard({
 export default function DashboardOverview() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const chartColors = useChartColors();
 
   useEffect(() => {
     const uid = getUserId();
@@ -244,11 +246,11 @@ export default function DashboardOverview() {
                   <stop offset="100%" stopColor="#E53E0B" stopOpacity={0} />
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#E8E4E0" />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: "#737373" }} axisLine={false} tickLine={false} />
-              <YAxis tick={{ fontSize: 12, fill: "#737373" }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
+              <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
+              <XAxis dataKey="month" tick={{ fontSize: 12, fill: chartColors.axis }} axisLine={false} tickLine={false} />
+              <YAxis tick={{ fontSize: 12, fill: chartColors.axis }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`} />
               <Tooltip
-                contentStyle={{ borderRadius: 12, border: "1px solid #E8E4E0", fontSize: 12 }}
+                contentStyle={{ borderRadius: 12, border: `1px solid ${chartColors.tooltipBorder}`, fontSize: 12, backgroundColor: chartColors.tooltipBg }}
                 formatter={(value) => [`$${Number(value).toLocaleString()}`, ""]}
               />
               <Area type="monotone" dataKey="income" stroke="#16A34A" fill="url(#incomeGrad)" strokeWidth={2} name="Income" />
@@ -272,7 +274,7 @@ export default function DashboardOverview() {
                       outerRadius={75}
                       dataKey="amount"
                       strokeWidth={2}
-                      stroke="#FFFFFF"
+                      stroke={chartColors.pieStroke}
                     >
                       {spendingByCategory.map((entry) => (
                         <Cell key={entry.name} fill={entry.color} />

@@ -42,6 +42,33 @@
   --font-mono: "JetBrains Mono", monospace;
 }
 
+.dark {
+  --color-background: #0C0C0C;
+  --color-foreground: #E5E5E5;
+  --color-card: #171717;
+  --color-card-foreground: #E5E5E5;
+  --color-popover: #1C1C1C;
+  --color-popover-foreground: #E5E5E5;
+  --color-primary: #F25D33;
+  --color-primary-foreground: #FFFFFF;
+  --color-secondary: #262626;
+  --color-secondary-foreground: #D4D4D4;
+  --color-muted: #262626;
+  --color-muted-foreground: #A3A3A3;
+  --color-accent: #262626;
+  --color-accent-foreground: #E5E5E5;
+  --color-destructive: #EF4444;
+  --color-destructive-foreground: #FAFAFA;
+  --color-border: #2E2E2E;
+  --color-input: #2E2E2E;
+  --color-ring: #F25D33;
+  --color-accent-orange: #F25D33;
+  --color-dark: #E5E5E5;
+  --color-cream: #0C0C0C;
+  --color-warm: #1A1410;
+  --color-light-accent: #2D1A0F;
+}
+
 @layer base {
   * {
     border-color: var(--color-border);
