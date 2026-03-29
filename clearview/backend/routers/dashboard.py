@@ -78,9 +78,16 @@ async def get_dashboard(user_id: str):
     pending_alerts = await db.anomaly_alerts.find(
         {"user_id": uid, "status": "pending"}
     ).sort("created_at", -1).to_list(20)
+    fraud_alerts = await db.fraud_alerts.find(
+        {"user_id": uid, "status": {"$in": ["pending", "calling", "call_failed"]}}
+    ).sort("created_at", -1).to_list(20)
+    pending_alerts = pending_alerts + fraud_alerts
     notifications = await db.notifications.find(
         {"user_id": uid, "is_read": False}
     ).sort("created_at", -1).to_list(20)
+    resolved_fraud = await db.fraud_alerts.find(
+        {"user_id": uid, "status": "resolved"}
+    ).sort("call_resolved_at", -1).to_list(5)
 
     now = datetime.utcnow()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
@@ -212,6 +219,7 @@ async def get_dashboard(user_id: str):
         "action_center": action_center,
         "budget_pulse": budget_pulse,
         "bill_risk": bill_risk,
+        "fraud_alerts": serialize_list(fraud_alerts + resolved_fraud),
     }
 
 

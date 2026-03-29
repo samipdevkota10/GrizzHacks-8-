@@ -228,11 +228,14 @@ async def initiate_fraud_call(
     )
 
     now = datetime.utcnow()
+    call_succeeded = call_result.get("success", False) and not call_result.get("mock", False)
 
     update_fields: dict = {
-        "status": "calling",
+        "status": "calling" if call_succeeded else "call_failed",
         "call_initiated_at": now,
     }
+    if not call_succeeded:
+        update_fields["call_error"] = call_result.get("message", "Unknown error")
     if grounded:
         update_fields["gemini_call_script"] = grounded
     if call_result.get("conversation_id"):

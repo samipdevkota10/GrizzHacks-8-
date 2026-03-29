@@ -10,16 +10,21 @@ settings = Settings()
 # Avoid /path/ → /path redirects that can downgrade to http and break CORS preflight POST flows.
 app = FastAPI(title="VeraFund API", version="1.0.0", redirect_slashes=False)
 
+_allowed_origins = settings.cors_allow_origins()
+_origin_regex = r"https://.*\.vercel\.app$"
+
 _cors_kwargs: dict = {
-    "allow_origins": settings.cors_allow_origins(),
+    "allow_origins": _allowed_origins,
     "allow_credentials": True,
     "allow_methods": ["*"],
     "allow_headers": ["*"],
+    "allow_origin_regex": _origin_regex,
 }
-if settings.CORS_ORIGIN_REGEX.strip():
-    _cors_kwargs["allow_origin_regex"] = settings.CORS_ORIGIN_REGEX.strip()
 
 app.add_middleware(CORSMiddleware, **_cors_kwargs)
+
+_logger.info("CORS allow_origins: %s", _allowed_origins)
+_logger.info("CORS allow_origin_regex: %s", _origin_regex)
 
 from routers import dashboard
 
@@ -54,7 +59,11 @@ async def _ensure_indexes():
 
 @app.get("/api/health")
 async def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "cors_origins": _allowed_origins,
+        "cors_regex": _origin_regex,
+    }
 
 
 @app.post("/api/admin/seed")
@@ -67,56 +76,114 @@ async def run_seed():
 
 @app.post("/api/admin/test-fraud")
 async def test_fraud(background_tasks: BackgroundTasks):
-    """Inject 3 mock fraudulent transactions to exercise the fraud pipeline.
+    """Inject a single high-risk fraudulent transaction and initiate the
+    Vera fraud call SYNCHRONOUSLY so errors surface in the response.
 
-    1. High-risk: unknown merchant + huge amount + late night
-    2. High-risk: velocity attack (3 rapid charges in 2 min)
-    3. Medium-risk: first-time merchant + unusual category
+    Returns full scoring breakdown + call result for debugging.
     """
-    from datetime import datetime, timedelta
-    from routers.transactions import ingest_transaction
+    from datetime import datetime
+    from bson import ObjectId
+    from database import get_database
+    from objectid_util import parse_user_object_id
+    from services.fraud_detection import evaluate_transaction
+    from services.vera_caller import initiate_fraud_call
 
     user_id = "69c8872cbab93b1d2a3387c0"
-    results = []
+    db = get_database()
+    uid = parse_user_object_id(user_id)
+    now = datetime.utcnow()
 
-    # --- Test 1: Unknown merchant, big amount, 3am ---
-    r1 = await ingest_transaction(
-        {
-            "user_id": user_id,
-            "amount": -890.00,
-            "merchant_name": "ShadyElectronics.xyz",
-            "category": "shopping",
-            "description": "[TEST] Unknown merchant, large amount, late night",
-        },
-        background_tasks,
+    amount = -1250.00
+    merchant = "CryptoVault-International.xyz"
+    category = "other"
+
+    detection = await evaluate_transaction(
+        user_id=user_id,
+        amount=amount,
+        merchant_name=merchant,
+        category=category,
     )
-    results.append({"test": "high_risk_unknown_merchant", **r1})
 
-    # --- Test 2: Velocity attack — 3 rapid $49.99 charges ---
-    for i in range(3):
-        r = await ingest_transaction(
-            {
-                "user_id": user_id,
-                "amount": -49.99,
-                "merchant_name": "QuickMart International",
-                "category": "shopping",
-                "description": f"[TEST] Velocity attack charge {i + 1}/3",
-            },
-            background_tasks,
+    tx_doc = {
+        "_id": ObjectId(),
+        "user_id": uid,
+        "account_id": "",
+        "virtual_card_id": None,
+        "amount": amount,
+        "currency": "USD",
+        "merchant_name": merchant,
+        "merchant_logo_url": None,
+        "category": category,
+        "subcategory": None,
+        "description": "[TEST] Fraudulent charge for demo",
+        "date": now,
+        "is_recurring": False,
+        "anomaly_flag": True,
+        "anomaly_alert_id": None,
+        "tags": ["test_fraud"],
+        "ai_summary": None,
+        "solana_receipt_tx": None,
+        "created_at": now,
+        "status": "pending_review",
+    }
+    await db.transactions.insert_one(tx_doc)
+    tx_id = str(tx_doc["_id"])
+
+    severity = (detection or {}).get("severity", "high")
+    reason = (detection or {}).get("reason", "Test fraud transaction — forced high severity")
+    risk_score = (detection or {}).get("risk_score", 99)
+    signals = (detection or {}).get("signals", [])
+
+    alert_doc = {
+        "_id": ObjectId(),
+        "user_id": uid,
+        "transaction_id": ObjectId(tx_id),
+        "virtual_card_id": None,
+        "amount": amount,
+        "merchant_name": merchant,
+        "category": category,
+        "reason": reason,
+        "severity": "high",
+        "risk_score": risk_score,
+        "signals": signals,
+        "status": "pending",
+        "call_conversation_id": None,
+        "call_sid": None,
+        "call_initiated_at": None,
+        "call_resolved_at": None,
+        "resolution": None,
+        "created_at": now,
+    }
+    await db.fraud_alerts.insert_one(alert_doc)
+    fraud_alert_id = str(alert_doc["_id"])
+    await db.transactions.update_one(
+        {"_id": tx_doc["_id"]},
+        {"$set": {"anomaly_alert_id": fraud_alert_id}},
+    )
+
+    call_result = None
+    call_error = None
+    try:
+        call_result = await initiate_fraud_call(
+            user_id=user_id,
+            transaction_id=tx_id,
+            fraud_alert_id=fraud_alert_id,
+            amount=amount,
+            merchant_name=merchant,
+            category=category,
+            reason=reason,
+            severity="high",
         )
-        results.append({"test": f"high_risk_velocity_{i + 1}", **r})
+    except Exception as exc:
+        call_error = f"{type(exc).__name__}: {exc}"
 
-    # --- Test 3: Medium-risk — first-time luxury merchant ---
-    r3 = await ingest_transaction(
-        {
-            "user_id": user_id,
-            "amount": -165.00,
-            "merchant_name": "LuxuryWatch.co",
-            "category": "shopping",
-            "description": "[TEST] First-time merchant, unusual category",
-        },
-        background_tasks,
-    )
-    results.append({"test": "medium_risk_first_time", **r3})
-
-    return {"status": "test_transactions_injected", "results": results}
+    return {
+        "status": "test_fraud_executed",
+        "transaction_id": tx_id,
+        "fraud_alert_id": fraud_alert_id,
+        "detection": detection,
+        "detection_severity": severity,
+        "detection_risk_score": risk_score,
+        "call_result": call_result,
+        "call_error": call_error,
+    }

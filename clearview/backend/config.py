@@ -21,8 +21,8 @@ class Settings(BaseSettings):
     # Comma-separated *extra* CORS origins (merged with the base list below).
     # Do not use this to replace defaults — base always includes production Vercel + localhost.
     CORS_ORIGINS: str = ""
-    # Also allow any origin matching this regex (Vercel preview deploys use unique subdomains).
-    # Set to empty in env to disable: CORS_ORIGIN_REGEX=
+    # Regex for Vercel preview deploys — ALWAYS active, cannot be disabled via env.
+    # Railway env vars cannot override this because we apply it unconditionally in main.py.
     CORS_ORIGIN_REGEX: str = r"https://.*\.vercel\.app$"
 
     ELEVENLABS_PHONE_NUMBER_ID: str = ""
@@ -45,11 +45,11 @@ class Settings(BaseSettings):
     )
 
     def cors_allow_origins(self) -> list[str]:
-        # Always include both known production URLs regardless of env configuration
-        # so Railway deployments work even when FRONTEND_URL is wrong or missing.
         items = [
             "https://grizz-hacks-8.vercel.app",
-            self.FRONTEND_URL.strip().rstrip("/"),  # strip trailing slash — browsers never send it
+            "https://grizzhacks-8-production.up.railway.app",
+            self.FRONTEND_URL.strip().rstrip("/"),
+            self.BACKEND_PUBLIC_URL.strip().rstrip("/") if self.BACKEND_PUBLIC_URL.strip() else "",
             "http://localhost:3000",
             "http://localhost:3001",
             "http://localhost:3002",
