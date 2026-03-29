@@ -1,4 +1,5 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+/** Base URL with no trailing slash — a trailing slash in env breaks paths (`//api/...` → 404 on Railway). */
+const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 // ── Auth token helpers ───────────────────────────────────────
 export function getToken(): string | null {

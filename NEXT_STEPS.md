@@ -130,7 +130,7 @@ To implement, you would need:
 1. Push code to GitHub
 2. Go to https://vercel.com, import the repo
 3. Set root directory to `clearview/frontend`
-4. Add env var: `NEXT_PUBLIC_API_URL=https://your-backend-url.railway.app`
+4. Add env var: `NEXT_PUBLIC_API_URL=https://your-backend-url.railway.app` (**no trailing slash** — a `/` at the end makes `//api/...` URLs that return **404**)
 5. Deploy
 
 #### Backend on Railway
@@ -138,7 +138,7 @@ To implement, you would need:
 2. Create a **service** from this repo and set **Root Directory** to `clearview/backend` (critical for Python + `requirements.txt`).
 3. Optional: **Settings → Config file** → `/clearview/backend/railway.toml` (ensures start command + health check are applied).
 4. **Networking → Public** must be enabled on **this** backend service; generate/copy the `*.railway.app` URL from that service (not a placeholder or unrelated project).
-5. Add all env vars from `clearview/backend/.env.example`, including `MONGODB_URI`, `FRONTEND_URL=https://grizz-hacks-8.vercel.app`, and `JWT_SECRET_KEY`.
+5. Add all env vars from `clearview/backend/.env.example`, including `FRONTEND_URL=https://grizz-hacks-8.vercel.app`, and `JWT_SECRET_KEY`. For **`MONGODB_URI`**, on Railway use a **variable reference** to your Mongo service’s **`MONGO_URL`** (internal `mongodb.railway.internal` — reachable from the backend container). Signup/login will **500** after a long wait if Mongo is unreachable.
 6. **Verify before pointing Vercel:** from your laptop,
    ```bash
    curl -sS https://YOUR-SERVICE.railway.app/api/health
