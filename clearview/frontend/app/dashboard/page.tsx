@@ -291,45 +291,46 @@ export default function DashboardOverview() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground" suppressHydrationWarning>
-          {greeting}, {userName.split(" ")[0]}
-        </h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Here&apos;s your financial overview for {monthNames[now.getMonth()]} {now.getFullYear()}
-        </p>
+      {/* Greeting row — includes net worth delta and subtle demo trigger */}
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground" suppressHydrationWarning>
+            {greeting}, {userName.split(" ")[0]}
+          </h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {monthNames[now.getMonth()]} {now.getFullYear()} · Net Worth{" "}
+            <span className="font-medium text-foreground">${(data.net_worth || 0).toLocaleString()}</span>
+          </p>
+        </div>
+        {/* Demo-only: subtle fraud test trigger */}
+        {fraudAlerts.filter((a) => a.status !== "resolved").length === 0 && (
+          <div className="flex items-center gap-2">
+            {testFraudResult && (
+              <span className={`text-[10px] font-medium max-w-[180px] truncate ${testFraudResult.startsWith("Call initiated") ? "text-green-600" : "text-muted-foreground"}`}>
+                {testFraudResult}
+              </span>
+            )}
+            <button
+              onClick={handleTestFraud}
+              disabled={testingFraud}
+              title="Demo: simulate a fraudulent transaction"
+              className="flex items-center gap-1.5 text-[11px] font-medium px-2.5 py-1.5 rounded-lg border border-dashed border-border text-muted-foreground hover:border-primary/40 hover:text-foreground disabled:opacity-40 transition-colors"
+            >
+              {testingFraud ? <Loader2 size={11} className="animate-spin" /> : <ShieldAlert size={11} />}
+              {testingFraud ? "Triggering…" : "Test fraud"}
+            </button>
+          </div>
+        )}
       </div>
 
-      {fraudAlerts.length > 0 && (
-        <FraudAlertBanner
-          alerts={fraudAlerts}
-          onResolved={() => {
-            const uid = getUserId();
-            if (uid) refreshFraudAlerts(uid);
-          }}
-        />
-      )}
-
-      {/* Demo fraud test button — only shown when no active alerts */}
-      {fraudAlerts.filter((a) => a.status !== "resolved").length === 0 && (
-        <div className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-border bg-muted/30">
-          <ShieldAlert size={15} className="text-muted-foreground flex-shrink-0" />
-          <p className="text-xs text-muted-foreground flex-1">Demo: trigger a mock fraudulent transaction to test the Vera call system.</p>
-          <button
-            onClick={handleTestFraud}
-            disabled={testingFraud}
-            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
-          >
-            {testingFraud ? <Loader2 size={12} className="animate-spin" /> : <ShieldAlert size={12} />}
-            {testingFraud ? "Triggering…" : "Simulate Fraud"}
-          </button>
-          {testFraudResult && (
-            <span className={`text-[10px] font-medium max-w-xs truncate ${testFraudResult.startsWith("Call initiated") ? "text-green-600" : "text-red-500"}`}>
-              {testFraudResult}
-            </span>
-          )}
-        </div>
-      )}
+      {/* Active fraud alerts — only shown when Vera is calling or a charge needs review */}
+      <FraudAlertBanner
+        alerts={fraudAlerts}
+        onResolved={() => {
+          const uid = getUserId();
+          if (uid) refreshFraudAlerts(uid);
+        }}
+      />
 
       {data.daily_snapshot && <DailySnapshotBanner snapshot={data.daily_snapshot} />}
 
@@ -338,13 +339,6 @@ export default function DashboardOverview() {
       )}
 
       <div className="grid grid-cols-4 gap-4">
-        <StatCard
-          label="Net Worth"
-          value={`$${(data.net_worth || 0).toLocaleString()}`}
-          change={`Assets: $${(profile?.total_assets || 0).toLocaleString()}`}
-          positive
-          icon={Wallet}
-        />
         <StatCard
           label="Monthly Income"
           value={`$${ms.income.toLocaleString()}`}
@@ -365,6 +359,13 @@ export default function DashboardOverview() {
           change={`$${savings.toLocaleString()} saved`}
           positive={savings >= 0}
           icon={PiggyBank}
+        />
+        <StatCard
+          label="Total Assets"
+          value={`$${(profile?.total_assets || 0).toLocaleString()}`}
+          change={`Liabilities: $${(profile?.total_liabilities || 0).toLocaleString()}`}
+          positive
+          icon={Wallet}
         />
       </div>
 

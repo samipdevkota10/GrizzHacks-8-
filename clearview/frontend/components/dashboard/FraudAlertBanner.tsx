@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ShieldAlert, ShieldOff, ShieldCheck, Phone, Loader2, CheckCircle2, XCircle } from "lucide-react";
+import { ShieldAlert, Phone, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { resolveFraudAlert, type FraudAlert } from "@/lib/api";
 
 const STATUS_CONFIG = {
@@ -26,40 +26,11 @@ const STATUS_CONFIG = {
     label: "Call Failed",
     labelBg: "bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300",
   },
-  resolved: {
-    bg: "bg-muted border-border",
-    icon: ShieldCheck,
-    iconColor: "text-muted-foreground",
-    label: "Resolved",
-    labelBg: "bg-muted text-muted-foreground",
-  },
 } as const;
-
-function ResolutionBadge({ resolution }: { resolution?: string | null }) {
-  if (resolution === "user_denied")
-    return (
-      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-300 border border-red-200 dark:border-red-800/40">
-        <ShieldOff size={12} /> BLOCKED
-      </span>
-    );
-  if (resolution === "user_confirmed")
-    return (
-      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 border border-green-200 dark:border-green-800/40">
-        <ShieldCheck size={12} /> APPROVED
-      </span>
-    );
-  if (resolution === "no_answer")
-    return (
-      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-800/50 dark:text-gray-400 border border-gray-200 dark:border-gray-700/40">
-        No Answer
-      </span>
-    );
-  return null;
-}
 
 function ActiveAlertCard({ alert, onResolved }: { alert: FraudAlert; onResolved: () => void }) {
   const [resolving, setResolving] = useState<"confirm" | "deny" | null>(null);
-  const cfg = STATUS_CONFIG[alert.status] || STATUS_CONFIG.pending;
+  const cfg = STATUS_CONFIG[alert.status as keyof typeof STATUS_CONFIG] || STATUS_CONFIG.pending;
   const Icon = cfg.icon;
 
   const handleResolve = async (resolution: "user_confirmed" | "user_denied") => {
@@ -134,43 +105,17 @@ function ActiveAlertCard({ alert, onResolved }: { alert: FraudAlert; onResolved:
 }
 
 export function FraudAlertBanner({ alerts, onResolved }: { alerts: FraudAlert[]; onResolved?: () => void }) {
-  if (!alerts || alerts.length === 0) return null;
+  // Only show active (unresolved) alerts — resolved ones are already in the notification panel
+  const active = (alerts || []).filter((a) => a.status !== "resolved");
+  if (active.length === 0) return null;
 
-  const active = alerts.filter((a) => a.status !== "resolved");
-  const resolved = alerts.filter((a) => a.status === "resolved");
-
-  const handleResolved = () => {
-    if (onResolved) onResolved();
-  };
+  const handleResolved = () => { if (onResolved) onResolved(); };
 
   return (
     <div className="space-y-2">
       {active.map((alert) => (
         <ActiveAlertCard key={alert._id} alert={alert} onResolved={handleResolved} />
       ))}
-
-      {resolved.length > 0 && (
-        <div className="rounded-2xl bg-card border border-border p-4">
-          <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">
-            Recent Fraud Resolutions
-          </h4>
-          <div className="space-y-2">
-            {resolved.slice(0, 3).map((alert) => (
-              <div key={alert._id} className="flex items-center gap-3 text-sm">
-                <ResolutionBadge resolution={alert.resolution} />
-                <span className="text-muted-foreground truncate">
-                  ${Math.abs(alert.amount).toFixed(2)} at {alert.merchant_name}
-                </span>
-                {alert.call_resolved_at && (
-                  <span className="text-[10px] text-muted-foreground ml-auto">
-                    {new Date(alert.call_resolved_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
