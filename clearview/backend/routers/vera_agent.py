@@ -47,14 +47,23 @@ async def record_call_result(body: dict):
 
     now = datetime.utcnow()
 
-    await db.fraud_alerts.update_one(
-        {"_id": ObjectId(alert_id)},
-        {"$set": {
-            "status": "resolved",
-            "resolution": resolution,
-            "call_resolved_at": now,
-        }},
-    )
+    if resolution != "no_answer":
+        await db.fraud_alerts.update_one(
+            {"_id": ObjectId(alert_id)},
+            {"$set": {
+                "status": "resolved",
+                "resolution": resolution,
+                "call_resolved_at": now,
+            }},
+        )
+    else:
+        await db.fraud_alerts.update_one(
+            {"_id": ObjectId(alert_id)},
+            {"$set": {
+                "resolution": resolution,
+                "call_resolved_at": now,
+            }},
+        )
 
     tx_id = alert.get("transaction_id")
     if resolution == "user_confirmed":
@@ -95,7 +104,7 @@ async def record_call_result(body: dict):
         return {"message": "Transaction denied. Card frozen and flagged for review."}
 
     else:
-        return {"message": "No answer recorded. Alert remains open for follow-up."}
+        return {"message": "No answer recorded. Alert remains pending for follow-up."}
 
 
 @router.post("/webhook/approve-transaction")

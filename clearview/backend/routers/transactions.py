@@ -14,6 +14,7 @@ from database import get_database
 from objectid_util import parse_user_object_id
 from services.fraud_detection import evaluate_transaction
 from services.vera_caller import initiate_fraud_call
+from services.creep_detection import check_for_price_creep
 
 router = APIRouter(prefix="/api/transactions", tags=["transactions"])
 
@@ -121,6 +122,16 @@ async def ingest_transaction(body: dict, background_tasks: BackgroundTasks):
     await db.transactions.insert_one(tx_doc)
     tx_id = str(tx_doc["_id"])
 
+    # Run creep detection for transactions linked to a virtual card
+    creep_alert = None
+    if body.get("virtual_card_id") and amount < 0:
+        creep_alert = await check_for_price_creep(
+            virtual_card_id=body["virtual_card_id"],
+            incoming_amount=abs(amount),
+            merchant_name=merchant_name,
+            user_id=user_id,
+        )
+
     fraud_alert_id = None
     if flagged:
         alert_doc = {
@@ -166,6 +177,7 @@ async def ingest_transaction(body: dict, background_tasks: BackgroundTasks):
         "flagged": flagged,
         "fraud_alert_id": fraud_alert_id,
         "detection": detection,
+        "creep_alert_id": str(creep_alert["_id"]) if creep_alert else None,
     }
 
 

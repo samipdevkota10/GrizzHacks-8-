@@ -29,9 +29,18 @@ import {
   Check,
 } from "lucide-react";
 
-import { getUserId, patchPurchaseAnalysis } from "@/lib/api";
-
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000").replace(/\/+$/, "");
+import {
+  getUserId,
+  patchPurchaseAnalysis,
+  fetchDashboard,
+  purchaseCheck,
+  fetchPurchaseHistory,
+  fetchWishlist,
+  addToWishlist,
+  removeFromWishlist as apiRemoveFromWishlist,
+  scanReceipt as apiScanReceipt,
+  confirmReceipt as apiConfirmReceipt,
+} from "@/lib/api";
 
 type GoalDelay = { goal_name: string; delayed_by_weeks: number };
 type Alternative = { name: string; estimated_price: number };
@@ -137,10 +146,9 @@ export default function PurchaseAnalyzer() {
 
   useEffect(() => {
     if (!uid) return;
-    fetch(`${API_URL}/api/dashboard/${uid}`)
-      .then((r) => r.json())
+    fetchDashboard(uid)
       .then((data) => {
-        const profile = data.financial_profile;
+        const profile = data.financial_profile as Record<string, number> | null;
         if (profile) {
           const hr = profile.hourly_rate || profile.monthly_income / 160;
           const tax = profile.tax_rate || 0.22;
@@ -158,15 +166,15 @@ export default function PurchaseAnalyzer() {
   }, []);
 
   function loadHistory() {
-    fetch(`${API_URL}/api/advisor/purchase-history/${uid}?limit=10`)
-      .then((r) => r.json())
+    if (!uid) return;
+    fetchPurchaseHistory(uid)
       .then((data) => setHistory(data.analyses || []))
       .catch(() => {});
   }
 
   function loadWishlist() {
-    fetch(`${API_URL}/api/advisor/wishlist/${uid}`)
-      .then((r) => r.json())
+    if (!uid) return;
+    fetchWishlist(uid)
       .then((data) => setWishlist(data.items || []))
       .catch(() => {});
   }
@@ -193,12 +201,7 @@ export default function PurchaseAnalyzer() {
     setError(null);
     setSavedToWishlist(false);
     try {
-      const formData = new FormData();
-      formData.append("image", imageFile);
-      formData.append("user_id", uid);
-      const res = await fetch(`${API_URL}/api/advisor/purchase-check`, { method: "POST", body: formData });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const data: AnalysisResult = await res.json();
+      const data = await purchaseCheck(uid, imageFile) as unknown as AnalysisResult;
       setPurchaseResult(data);
       loadHistory();
     } catch (e: unknown) {
@@ -208,18 +211,13 @@ export default function PurchaseAnalyzer() {
     }
   };
 
-  const scanReceipt = async () => {
+  const doScanReceipt = async () => {
     if (!imageFile || !uid) return;
     setAnalyzing(true);
     setError(null);
     setReceiptConfirmed(false);
     try {
-      const formData = new FormData();
-      formData.append("image", imageFile);
-      formData.append("user_id", uid);
-      const res = await fetch(`${API_URL}/api/advisor/scan-receipt`, { method: "POST", body: formData });
-      if (!res.ok) throw new Error(`API error: ${res.status}`);
-      const data: ReceiptResult = await res.json();
+      const data = await apiScanReceipt(uid, imageFile) as unknown as ReceiptResult;
       setReceiptResult(data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Receipt scan failed.");
@@ -228,16 +226,11 @@ export default function PurchaseAnalyzer() {
     }
   };
 
-  const confirmReceipt = async () => {
+  const doConfirmReceipt = async () => {
     if (!receiptResult?.scan_id) return;
     setConfirmingReceipt(true);
     try {
-      const res = await fetch(`${API_URL}/api/advisor/scan-receipt/${receiptResult.scan_id}/confirm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}),
-      });
-      if (!res.ok) throw new Error("Failed to confirm receipt");
+      await apiConfirmReceipt(receiptResult.scan_id);
       setReceiptConfirmed(true);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Failed to save receipt as transaction.");
@@ -249,17 +242,13 @@ export default function PurchaseAnalyzer() {
   const saveToWishlist = async () => {
     if (!purchaseResult || !uid) return;
     try {
-      await fetch(`${API_URL}/api/advisor/wishlist`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: uid,
-          product: purchaseResult.product,
-          price: purchaseResult.price,
-          verdict: purchaseResult.verdict,
-          reasoning: purchaseResult.reasoning,
-          analysis_id: purchaseResult.analysis_id,
-        }),
+      await addToWishlist({
+        user_id: uid,
+        product: purchaseResult.product,
+        price: purchaseResult.price,
+        verdict: purchaseResult.verdict,
+        reasoning: purchaseResult.reasoning,
+        analysis_id: purchaseResult.analysis_id,
       });
       setSavedToWishlist(true);
       loadWishlist();
@@ -268,9 +257,9 @@ export default function PurchaseAnalyzer() {
     }
   };
 
-  const removeFromWishlist = async (id: string) => {
+  const removeWishlistItem = async (id: string) => {
     try {
-      await fetch(`${API_URL}/api/advisor/wishlist/${id}`, { method: "DELETE" });
+      await apiRemoveFromWishlist(id);
       setWishlist((prev) => prev.filter((w) => w._id !== id));
     } catch {
       /* silent */
@@ -400,7 +389,7 @@ export default function PurchaseAnalyzer() {
           {image && (
             <div className="flex justify-center mt-6">
               <button
-                onClick={mode === "purchase" ? analyzePurchase : scanReceipt}
+                onClick={mode === "purchase" ? analyzePurchase : doScanReceipt}
                 disabled={analyzing}
                 className="inline-flex items-center gap-2 rounded-full bg-primary px-8 py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all disabled:opacity-60"
               >
@@ -705,7 +694,7 @@ export default function PurchaseAnalyzer() {
 
               {!receiptConfirmed ? (
                 <button
-                  onClick={confirmReceipt}
+                  onClick={doConfirmReceipt}
                   disabled={confirmingReceipt}
                   className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-medium text-primary-foreground hover:opacity-90 transition-all disabled:opacity-60"
                 >
@@ -745,7 +734,7 @@ export default function PurchaseAnalyzer() {
                     </div>
                     <div className="flex items-center gap-2">
                       <VerdictBadge verdict={item.verdict} />
-                      <button onClick={() => removeFromWishlist(item._id)} className="text-muted-foreground hover:text-red-500 transition-colors">
+                      <button onClick={() => removeWishlistItem(item._id)} className="text-muted-foreground hover:text-red-500 transition-colors">
                         <Trash2 size={14} />
                       </button>
                     </div>

@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 import { Menu, X } from "lucide-react";
 
 const navLinks = [
-  { label: "About", href: "#about" },
+  { label: "About", href: "#how-it-works" },
   { label: "Features", href: "#features" },
   { label: "Pricing", href: "#pricing" },
   { label: "Integration", href: "#integration" },
@@ -24,7 +24,7 @@ const Navbar = () => {
     >
       <div className="flex items-center justify-between rounded-2xl border border-border bg-card/80 backdrop-blur-md px-6 py-4 shadow-sm">
         {/* Logo */}
-        <a href="#" className="flex items-center gap-2">
+        <a href="/" className="flex items-center gap-2">
                 <img src="/images/logo-icon.svg" alt="Vera Fund" className="w-8 h-8 rounded-full" />
                 <span className="text-lg font-bold text-foreground">
                   Vera<span className="text-muted-foreground font-medium">Fund</span>

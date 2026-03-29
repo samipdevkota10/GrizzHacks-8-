@@ -21,6 +21,14 @@ def _day_in_month(year: int, month: int, day: int, hour: int = 12) -> datetime:
     return datetime(year, month, d, hour, 0, 0)
 
 
+def _next_biweekly_pay(anchor: datetime, ref: datetime) -> datetime:
+    """Return the next bi-weekly Friday pay date on or after `ref`."""
+    d = anchor
+    while d < ref:
+        d += timedelta(days=14)
+    return d
+
+
 async def seed() -> None:
     db = get_database()
     for name in await db.list_collection_names():
@@ -35,8 +43,8 @@ async def seed() -> None:
     checking_id = ObjectId()
     savings_id = ObjectId()
     credit_id = ObjectId()
-    investment_id = ObjectId()
 
+    # ── User ──────────────────────────────────────────────────
     await db.users.insert_one(
         {
             "_id": user_id,
@@ -63,108 +71,101 @@ async def seed() -> None:
         }
     )
 
+    # ── Financial Profile (college student, $20/hr, 30 hrs/wk) ─
+    pay_anchor_friday = now - timedelta(days=(now.weekday() - 4) % 7 + 7)
+    pay_anchor_friday = pay_anchor_friday.replace(hour=10, minute=0, second=0, microsecond=0)
+
     await db.financial_profiles.insert_one(
         {
             "_id": profile_id,
             "user_id": user_id,
-            "monthly_income": 4800.0,
-            "monthly_budget": 3500.0,
-            "hourly_rate": 30.0,
-            "tax_rate": 0.22,
+            "monthly_income": 2600.0,
+            "monthly_budget": 2000.0,
+            "hourly_rate": 20.0,
+            "tax_rate": 0.18,
+            "employment_type": "part-time",
+            "employer_name": "Campus IT Help Desk",
+            "pay_frequency": "biweekly",
+            "last_pay_date": pay_anchor_friday,
             "category_budgets": {
-                "food": 600,
-                "transport": 250,
-                "entertainment": 200,
-                "shopping": 300,
-                "health": 150,
-                "utilities": 200,
-                "subscriptions": 200,
-                "other": 100,
+                "food": 460,
+                "transport": 95,
+                "entertainment": 70,
+                "shopping": 130,
+                "utilities": 130,
+                "subscriptions": 65,
             },
-            "net_worth": 23399.33,
-            "total_assets": 24739.83,
-            "total_liabilities": 1340.50,
-            "savings_goal_monthly": 500.0,
+            "net_worth": 5370.0,
+            "total_assets": 6050.0,
+            "total_liabilities": 680.0,
+            "savings_goal_monthly": 300.0,
             "financial_goals": [
-                {"name": "Emergency Fund", "target_amount": 15000.0, "current_amount": 8120.0},
-                {"name": "Vacation Fund", "target_amount": 3000.0, "current_amount": 1200.0},
-                {"name": "Pay Off Credit Card", "target_amount": 1340.50, "current_amount": 0.0},
+                {"name": "Emergency Fund", "target_amount": 3000.0, "current_amount": 1500.0, "icon": "Shield"},
+                {"name": "Spring Break Trip", "target_amount": 800.0, "current_amount": 340.0, "icon": "Plane"},
+                {"name": "New Laptop Fund", "target_amount": 1200.0, "current_amount": 450.0, "icon": "Target"},
             ],
             "last_synced": None,
         }
     )
 
+    # ── Accounts ──────────────────────────────────────────────
     uid = user_id
     accounts = [
         {
             "_id": checking_id,
             "user_id": uid,
-            "name": "Chase Checking",
+            "name": "Wells Fargo Checking",
             "type": "checking",
-            "balance": 4247.83,
+            "balance": 1850.0,
             "currency": "USD",
-            "institution_name": "Chase",
-            "institution_logo_url": "chase.com",
+            "institution_name": "Wells Fargo",
+            "institution_logo_url": "wellsfargo.com",
             "is_primary_checking": True,
-            "color": "#4F8EF7",
+            "color": "#D71E28",
             "created_at": now,
             "is_active": True,
         },
         {
             "_id": savings_id,
             "user_id": uid,
-            "name": "Marcus Savings",
+            "name": "Wells Fargo Savings",
             "type": "savings",
-            "balance": 8120.00,
+            "balance": 4200.0,
             "currency": "USD",
-            "institution_name": "Marcus",
-            "institution_logo_url": "marcus.com",
+            "institution_name": "Wells Fargo",
+            "institution_logo_url": "wellsfargo.com",
             "is_primary_checking": False,
-            "color": "#00D26A",
+            "color": "#00A651",
             "created_at": now,
             "is_active": True,
         },
         {
             "_id": credit_id,
             "user_id": uid,
-            "name": "Chase Sapphire Credit",
+            "name": "Discover it Student",
             "type": "credit",
-            "balance": -1340.50,
+            "balance": -680.0,
             "currency": "USD",
-            "institution_name": "Chase",
-            "institution_logo_url": "chase.com",
+            "institution_name": "Discover",
+            "institution_logo_url": "discover.com",
             "is_primary_checking": False,
-            "color": "#FF4757",
-            "created_at": now,
-            "is_active": True,
-        },
-        {
-            "_id": investment_id,
-            "user_id": uid,
-            "name": "Fidelity 401k",
-            "type": "investment",
-            "balance": 12372.00,
-            "currency": "USD",
-            "institution_name": "Fidelity",
-            "institution_logo_url": "fidelity.com",
-            "is_primary_checking": False,
-            "color": "#FFB836",
+            "color": "#FF6600",
             "created_at": now,
             "is_active": True,
         },
     ]
     await db.accounts.insert_many(accounts)
 
+    # ── Virtual Cards (one per subscription) ──────────────────
     checking_str = str(checking_id)
     card_specs = [
-        ("Netflix", "4829", 25.00, 15.99, "red"),
-        ("Spotify", "7712", 15.00, 9.99, "green"),
-        ("Planet Fitness", "3351", 50.00, 24.99, "blue"),
-        ("Adobe Creative Cloud", "6644", 60.00, 54.99, "purple"),
-        ("iCloud", "1198", 5.00, 2.99, "blue"),
-        ("New York Times", "5523", 20.00, 17.00, "blue"),
-        ("Amazon Prime", "8837", 20.00, 14.99, "blue"),
-        ("Hulu", "2290", 25.00, 17.99, "green"),
+        ("Netflix", "4829", 15.00, 6.99, "red"),
+        ("Spotify", "7712", 10.00, 5.99, "green"),
+        ("Amazon Prime", "8837", 12.00, 7.49, "blue"),
+        ("ChatGPT Plus", "3190", 25.00, 20.00, "purple"),
+        ("Planet Fitness", "3351", 15.00, 10.00, "blue"),
+        ("iCloud+", "1198", 3.00, 0.99, "gray"),
+        ("Xbox Game Pass", "6644", 15.00, 10.99, "green"),
     ]
     card_docs = []
     card_ids_by_merchant: dict[str, ObjectId] = {}
@@ -199,48 +200,36 @@ async def seed() -> None:
         )
     await db.virtual_cards.insert_many(card_docs)
 
+    # ── Subscriptions (student-priced) ────────────────────────
     sub_rows = [
-        ("Netflix", 17.99, "streaming", 72, False, 15.99),
-        ("Spotify", 9.99, "streaming", 95, False, 9.99),
-        ("Planet Fitness", 24.99, "fitness", 15, True, 24.99),
-        ("Adobe Creative Cloud", 54.99, "software", 80, False, 54.99),
-        ("iCloud 200GB", 2.99, "cloud", 90, False, 2.99),
-        ("New York Times", 17.00, "news", 40, True, 17.00),
-        ("Amazon Prime", 14.99, "shopping", 85, False, 14.99),
-        ("Hulu", 17.99, "streaming", 55, False, 17.99),
+        ("Netflix", 6.99, "streaming", 85, False, 6.99),
+        ("Spotify", 5.99, "streaming", 95, False, 5.99),
+        ("Amazon Prime", 7.49, "shopping", 80, False, 7.49),
+        ("ChatGPT Plus", 20.00, "software", 92, False, 20.00),
+        ("Planet Fitness", 10.00, "fitness", 35, True, 10.00),
+        ("iCloud+", 0.99, "cloud", 90, False, 0.99),
+        ("Xbox Game Pass", 10.99, "entertainment", 40, True, 10.99),
     ]
-    merchant_to_card = {
-        "Netflix": "Netflix",
-        "Spotify": "Spotify",
-        "Planet Fitness": "Planet Fitness",
-        "Adobe Creative Cloud": "Adobe Creative Cloud",
-        "iCloud 200GB": "iCloud",
-        "New York Times": "New York Times",
-        "Amazon Prime": "Amazon Prime",
-        "Hulu": "Hulu",
-    }
     sub_logo_domains = {
         "Netflix": "netflix.com",
         "Spotify": "spotify.com",
-        "Planet Fitness": "planetfitness.com",
-        "Adobe Creative Cloud": "adobe.com",
-        "iCloud 200GB": "apple.com",
-        "New York Times": "nytimes.com",
         "Amazon Prime": "amazon.com",
-        "Hulu": "hulu.com",
+        "ChatGPT Plus": "openai.com",
+        "Planet Fitness": "planetfitness.com",
+        "iCloud+": "apple.com",
+        "Xbox Game Pass": "xbox.com",
     }
     sub_docs = []
     sub_ids_by_name: dict[str, ObjectId] = {}
     for i, (name, amount, cat, usage, cancel, last_known) in enumerate(sub_rows):
         sid = ObjectId()
         sub_ids_by_name[name] = sid
-        m = merchant_to_card[name]
         next_d = now + timedelta(days=3 + i * 4)
         sub_docs.append(
             {
                 "_id": sid,
                 "user_id": uid,
-                "virtual_card_id": str(card_ids_by_merchant[m]),
+                "virtual_card_id": str(card_ids_by_merchant[name]),
                 "name": name,
                 "logo_url": sub_logo_domains.get(name),
                 "amount": amount,
@@ -257,6 +246,7 @@ async def seed() -> None:
         )
     await db.subscriptions.insert_many(sub_docs)
 
+    # ── Anomaly Alert: Netflix price hike $6.99 → $8.49 ──────
     netflix_card_id = card_ids_by_merchant["Netflix"]
     netflix_sub_id = sub_ids_by_name["Netflix"]
     alert_id = ObjectId()
@@ -267,9 +257,9 @@ async def seed() -> None:
             "subscription_id": str(netflix_sub_id),
             "virtual_card_id": str(netflix_card_id),
             "merchant_name": "Netflix",
-            "last_known_amount": 15.99,
-            "incoming_amount": 17.99,
-            "delta_pct": 12.5,
+            "last_known_amount": 6.99,
+            "incoming_amount": 8.49,
+            "delta_pct": 21.5,
             "threshold_pct": 5.0,
             "status": "pending",
             "action_taken": None,
@@ -285,7 +275,7 @@ async def seed() -> None:
             "user_id": uid,
             "type": "price_creep",
             "title": "Netflix raised their price",
-            "message": "Netflix tried to charge $17.99 — up 12.5% from $15.99",
+            "message": "Netflix tried to charge $8.49 \u2014 up 21.5% from $6.99",
             "is_read": False,
             "action_url": None,
             "related_entity_type": "subscription",
@@ -294,32 +284,38 @@ async def seed() -> None:
         }
     )
 
+    # ── Transactions ──────────────────────────────────────────
     transactions: list[dict] = []
     y, m = now.year, now.month
 
-    MERCHANT_DOMAINS: dict[str, str] = {
+    MERCHANT_DOMAINS: dict[str, str | None] = {
         "Netflix": "netflix.com",
         "Spotify": "spotify.com",
-        "Planet Fitness": "planetfitness.com",
-        "Adobe Creative Cloud": "adobe.com",
-        "iCloud 200GB": "apple.com",
-        "iCloud": "apple.com",
-        "New York Times": "nytimes.com",
         "Amazon Prime": "amazon.com",
+        "ChatGPT Plus": "openai.com",
+        "Planet Fitness": "planetfitness.com",
+        "iCloud+": "apple.com",
+        "Xbox Game Pass": "xbox.com",
         "Amazon": "amazon.com",
-        "Hulu": "hulu.com",
-        "Whole Foods": "wholefoodsmarket.com",
-        "Trader Joe's": "traderjoes.com",
+        "Walmart": "walmart.com",
+        "Aldi": None,
+        "Kroger": "kroger.com",
         "Target": "target.com",
-        "Uber": "uber.com",
-        "Uber Eats": "ubereats.com",
-        "Lyft": "lyft.com",
         "Starbucks": "starbucks.com",
-        "McDonald's": "mcdonalds.com",
         "Chipotle": "chipotle.com",
-        "Chase": "chase.com",
-        "Employer Payroll": None,
-        "Fidelity": "fidelity.com",
+        "Domino's": "dominos.com",
+        "McDonald's": "mcdonalds.com",
+        "Taco Bell": "tacobell.com",
+        "Chick-fil-A": "chick-fil-a.com",
+        "Shell Gas": "shell.com",
+        "BP Gas": "bp.com",
+        "T-Mobile": "t-mobile.com",
+        "DTE Energy": None,
+        "Comcast Internet": "xfinity.com",
+        "Campus IT - Payroll": None,
+        "Rent - Maple Apartments": None,
+        "Venmo": "venmo.com",
+        "Best Buy": "bestbuy.com",
     }
 
     def add_tx(
@@ -360,12 +356,18 @@ async def seed() -> None:
             }
         )
 
-    p = start + timedelta(days=2)
-    p = p.replace(hour=10, minute=0, second=0, microsecond=0)
+    # --- Bi-weekly payroll ($1,200 net per paycheck) ---
+    p = pay_anchor_friday
+    while p > start:
+        p -= timedelta(days=14)
+    if p < start:
+        p += timedelta(days=14)
     while p <= now:
-        add_tx(p, 2400.0, "Employer Payroll", "income", is_recurring=True)
+        add_tx(p, 1200.0, "Campus IT - Payroll", "income", is_recurring=True,
+               description="Bi-weekly payroll deposit")
         p += timedelta(days=14)
 
+    # --- Rent: $875 on the 1st ---
     for month_offset in range(-2, 1):
         mm = m + month_offset
         yy = y
@@ -375,9 +377,36 @@ async def seed() -> None:
         while mm > 12:
             mm -= 12
             yy += 1
-        r = _day_in_month(yy, mm, 1, 9)
-        add_tx(r, -1450.0, "Rent Payment", "utilities", is_recurring=True)
+        add_tx(_day_in_month(yy, mm, 1, 9), -875.0, "Rent - Maple Apartments", "utilities",
+               is_recurring=True, description="Monthly rent (shared apartment)")
 
+    # --- Subscription charges ---
+    sub_charge_day = {
+        "Spotify": 8, "ChatGPT Plus": 10, "iCloud+": 11,
+        "Amazon Prime": 15, "Xbox Game Pass": 18,
+    }
+    sub_amounts = {
+        "Spotify": 5.99, "ChatGPT Plus": 20.00, "iCloud+": 0.99,
+        "Amazon Prime": 7.49, "Xbox Game Pass": 10.99,
+    }
+    for name, amt in sub_amounts.items():
+        for month_offset in range(-2, 1):
+            mm = m + month_offset
+            yy = y
+            while mm <= 0:
+                mm += 12
+                yy -= 1
+            while mm > 12:
+                mm -= 12
+                yy += 1
+            add_tx(
+                _day_in_month(yy, mm, sub_charge_day[name], 8),
+                -amt, name, "subscription",
+                is_recurring=True,
+                virtual_card_id=str(card_ids_by_merchant[name]),
+            )
+
+    # Planet Fitness on the 5th
     for month_offset in range(-2, 1):
         mm = m + month_offset
         yy = y
@@ -387,9 +416,13 @@ async def seed() -> None:
         while mm > 12:
             mm -= 12
             yy += 1
-        add_tx(_day_in_month(yy, mm, 5, 10), -24.99, "Planet Fitness", "subscription", is_recurring=True, virtual_card_id=str(card_ids_by_merchant["Planet Fitness"]))
+        add_tx(
+            _day_in_month(yy, mm, 5, 10), -10.00, "Planet Fitness", "subscription",
+            is_recurring=True, virtual_card_id=str(card_ids_by_merchant["Planet Fitness"]),
+        )
 
-    netflix_anomaly_date = _day_in_month(y, m, min(18, now.day), 11)
+    # Netflix: $6.99 for prior months, then $8.49 anomaly this month
+    netflix_anomaly_date = _day_in_month(y, m, min(12, now.day), 11)
     if netflix_anomaly_date > now:
         netflix_anomaly_date = now - timedelta(days=1)
     for month_offset in range(-3, 0):
@@ -402,61 +435,16 @@ async def seed() -> None:
             mm -= 12
             yy += 1
         add_tx(
-            _day_in_month(yy, mm, 12, 11),
-            -15.99,
-            "Netflix",
-            "subscription",
-            is_recurring=True,
-            virtual_card_id=str(netflix_card_id),
+            _day_in_month(yy, mm, 12, 11), -6.99, "Netflix", "subscription",
+            is_recurring=True, virtual_card_id=str(netflix_card_id),
         )
     add_tx(
-        netflix_anomaly_date,
-        -17.99,
-        "Netflix",
-        "subscription",
-        is_recurring=True,
-        anomaly_flag=True,
-        anomaly_alert_id=str(alert_id),
+        netflix_anomaly_date, -8.49, "Netflix", "subscription",
+        is_recurring=True, anomaly_flag=True, anomaly_alert_id=str(alert_id),
         virtual_card_id=str(netflix_card_id),
     )
 
-    sub_charge_day = {"Spotify": 14, "Adobe Creative Cloud": 16, "iCloud 200GB": 17, "New York Times": 19, "Amazon Prime": 21, "Hulu": 22}
-    sub_amounts = {
-        "Spotify": 9.99,
-        "Adobe Creative Cloud": 54.99,
-        "iCloud 200GB": 2.99,
-        "New York Times": 17.00,
-        "Amazon Prime": 14.99,
-        "Hulu": 17.99,
-    }
-    sub_card_key = {
-        "Spotify": "Spotify",
-        "Adobe Creative Cloud": "Adobe Creative Cloud",
-        "iCloud 200GB": "iCloud",
-        "New York Times": "New York Times",
-        "Amazon Prime": "Amazon Prime",
-        "Hulu": "Hulu",
-    }
-    for name, amt in sub_amounts.items():
-        ck = sub_card_key[name]
-        for month_offset in range(-2, 1):
-            mm = m + month_offset
-            yy = y
-            while mm <= 0:
-                mm += 12
-                yy -= 1
-            while mm > 12:
-                mm -= 12
-                yy += 1
-            add_tx(
-                _day_in_month(yy, mm, sub_charge_day[name], 8),
-                -amt,
-                name,
-                "subscription",
-                is_recurring=True,
-                virtual_card_id=str(card_ids_by_merchant[ck]),
-            )
-
+    # --- Utilities (split with roommates) ---
     for month_offset in range(-2, 1):
         mm = m + month_offset
         yy = y
@@ -466,87 +454,222 @@ async def seed() -> None:
         while mm > 12:
             mm -= 12
             yy += 1
-        add_tx(_day_in_month(yy, mm, 20, 8), -67.0, "DTE Energy", "utilities", is_recurring=True)
-        add_tx(_day_in_month(yy, mm, 22, 8), -54.0, "Comcast Internet", "utilities", is_recurring=True)
+        add_tx(_day_in_month(yy, mm, 20, 8), -28.0, "DTE Energy", "utilities",
+               is_recurring=True, description="Electric bill (1/3 split)")
+        add_tx(_day_in_month(yy, mm, 22, 8), -57.0, "Comcast Internet", "utilities",
+               is_recurring=True, description="Internet bill (1/3 split)")
 
-    cy, cm = now.year, now.month
-    chipotle_march_days = [2, 5, 8, 12, 15, 19, 22, 26]
-    chipotle_march_amts = [12.87, 14.20, 13.45, 12.10, 14.95, 13.60, 12.75, 14.30]
-    _, last_cm = monthrange(cy, cm)
-    for d, a in zip(chipotle_march_days, chipotle_march_amts):
-        day = min(d, last_cm)
-        if day > now.day and (cy, cm) == (y, m):
-            continue
-        dt = datetime(cy, cm, day, 18, 30, 0)
-        if (cy, cm) == (y, m) and dt > now:
-            continue
-        add_tx(dt, -a, "Chipotle", "food")
+    # --- Phone bill ---
+    for month_offset in range(-2, 1):
+        mm = m + month_offset
+        yy = y
+        while mm <= 0:
+            mm += 12
+            yy -= 1
+        while mm > 12:
+            mm -= 12
+            yy += 1
+        add_tx(_day_in_month(yy, mm, 25, 9), -45.0, "T-Mobile", "utilities", is_recurring=True)
 
-    target_chipotle = 340.0
-    march_sum = sum(chipotle_march_amts)
-    remaining = max(0.0, target_chipotle - march_sum)
-    n_extra = 14
-    avg = remaining / n_extra if n_extra else 0.0
-    t = start + timedelta(days=4)
-    step = 5
-    chipotle_extra = 0.0
-    for i in range(n_extra):
-        lo = max(11.5, avg * 0.9)
-        hi = min(16.2, avg * 1.1)
-        amt = round(random.uniform(lo, hi), 2)
-        chipotle_extra += amt
-        add_tx(t + timedelta(days=i * step), -amt, "Chipotle", "food")
-        if chipotle_extra >= remaining - 5.0:
-            break
+    # --- Groceries: Walmart, Aldi, Kroger ---
+    grocery_merchants = ["Walmart", "Aldi", "Kroger"]
+    for month_offset in range(-2, 1):
+        mm = m + month_offset
+        yy = y
+        while mm <= 0:
+            mm += 12
+            yy -= 1
+        while mm > 12:
+            mm -= 12
+            yy += 1
+        _, last_d = monthrange(yy, mm)
+        for trip in range(random.randint(8, 10)):
+            day = random.randint(1, last_d)
+            dt = datetime(yy, mm, day, random.randint(10, 19), 0, 0)
+            merchant = random.choice(grocery_merchants)
+            amt = round(random.uniform(18.0, 52.0), 2)
+            add_tx(dt, -amt, merchant, "food", description="Groceries")
 
-    sb_anchor = max(start, now - timedelta(days=21))
-    for w in range(3):
-        for dow in (0, 2, 4):
-            dt = sb_anchor + timedelta(weeks=w, days=dow)
-            if dt > now:
-                continue
-            add_tx(dt, -round(random.uniform(5.0, 7.15), 2), "Starbucks", "food")
+    # --- Dining out: Starbucks, Chipotle, Domino's, McDonald's, etc. ---
+    dining_patterns = [
+        ("Starbucks", 4.85, 7.25, 5),
+        ("Chipotle", 9.50, 14.20, 4),
+        ("Domino's", 8.99, 16.50, 2),
+        ("McDonald's", 6.50, 12.80, 2),
+        ("Taco Bell", 5.99, 11.50, 1),
+        ("Chick-fil-A", 8.50, 13.75, 2),
+    ]
+    for month_offset in range(-2, 1):
+        mm = m + month_offset
+        yy = y
+        while mm <= 0:
+            mm += 12
+            yy -= 1
+        while mm > 12:
+            mm -= 12
+            yy += 1
+        _, last_d = monthrange(yy, mm)
+        for merchant, lo, hi, freq in dining_patterns:
+            for _ in range(freq):
+                day = random.randint(1, last_d)
+                hour = random.randint(11, 21)
+                dt = datetime(yy, mm, day, hour, random.randint(0, 59), 0)
+                add_tx(dt, -round(random.uniform(lo, hi), 2), merchant, "food")
 
-    for wk in (0, 18, 38, 58):
-        dt = start + timedelta(days=5 + wk)
+    # --- Gas: every 10 days ---
+    gas_stations = ["Shell Gas", "BP Gas"]
+    d = start + timedelta(days=3)
+    while d <= now:
+        station = random.choice(gas_stations)
+        amt = round(random.uniform(28.0, 45.0), 2)
+        add_tx(d, -amt, station, "transport")
+        d += timedelta(days=random.randint(8, 12))
+
+    # --- Shopping: Amazon, Target ---
+    shop_days = [5, 22, 42, 58, 75]
+    for i, sd in enumerate(shop_days):
+        dt = start + timedelta(days=sd)
         if dt > now:
             break
-        add_tx(dt, -round(random.uniform(15.0, 80.0), 2), "Amazon", "shopping")
+        merchant = "Amazon" if i % 2 == 0 else "Target"
+        lo, hi = (15.0, 45.0) if merchant == "Amazon" else (20.0, 60.0)
+        add_tx(dt, -round(random.uniform(lo, hi), 2), merchant, "shopping")
 
-    for i in range(4):
-        dt = start + timedelta(days=9 + i * 20)
-        if dt > now:
-            break
-        add_tx(dt, -round(random.uniform(60.0, 120.0), 2), "Whole Foods", "food")
-    for i in range(4):
-        dt = start + timedelta(days=11 + i * 20)
-        if dt > now:
-            break
-        add_tx(dt, -round(random.uniform(60.0, 115.0), 2), "Trader Joe's", "food")
+    # --- Entertainment: occasional larger purchases ---
+    ent_purchases = [
+        (12, -65.0, "Ticketmaster", "Concert tickets"),
+        (35, -14.99, "Steam", "Video game"),
+        (50, -12.00, "AMC Theatres", "Movie night"),
+        (70, -25.0, "Eventbrite", "Campus event"),
+    ]
+    for day_off, amt, merchant, desc in ent_purchases:
+        dt = start + timedelta(days=day_off)
+        if dt <= now:
+            if merchant not in MERCHANT_DOMAINS:
+                MERCHANT_DOMAINS[merchant] = None
+            add_tx(dt, amt, merchant, "entertainment", description=desc)
 
-    ride_days = [7, 23, 38, 55, 71]
-    for i, rd in enumerate(ride_days):
-        dt = start + timedelta(days=rd)
-        if dt > now:
-            break
-        svc = "Uber" if i % 2 == 0 else "Lyft"
-        add_tx(dt, -round(random.uniform(15.0, 25.0), 2), svc, "transport")
+    # --- Textbook / school supplies ---
+    add_tx(start + timedelta(days=8), -42.99, "Amazon", "shopping",
+           description="Textbook - Data Structures")
+    add_tx(start + timedelta(days=45), -18.50, "Target", "shopping",
+           description="School supplies")
 
-    add_tx(start + timedelta(days=40), -189.0, "Best Buy", "shopping", description="Electronics purchase")
+    # --- Venmo splits (incoming from roommates for utilities) ---
+    for month_offset in range(-2, 1):
+        mm = m + month_offset
+        yy = y
+        while mm <= 0:
+            mm += 12
+            yy -= 1
+        while mm > 12:
+            mm -= 12
+            yy += 1
+        add_tx(_day_in_month(yy, mm, 21, 14), 28.0, "Venmo", "other",
+               description="Roommate - electric split")
 
     transactions = [tx for tx in transactions if start <= tx["date"] <= now]
     transactions.sort(key=lambda x: x["date"])
     if transactions:
         await db.transactions.insert_many(transactions)
 
-    await db.users.create_index("email", unique=True)
+    # ── User Cards (for Card Optimizer feature) ───────────────
+    user_cards = [
+        {
+            "_id": ObjectId(),
+            "user_id": uid,
+            "card_name": "Discover it Student Cash Back",
+            "issuer": "Discover",
+            "card_type": "credit",
+            "last4": "4829",
+            "base_reward_pct": 1.0,
+            "category_bonuses": {},
+            "quarterly_rotating": {"grocery": 5.0, "streaming": 5.0},
+            "quarterly_label": "Q1 2026: Grocery Stores & Streaming",
+            "quarterly_cap": 1500.0,
+            "quarterly_spent": 82.0,
+            "annual_fee": 0.0,
+            "rewards_earned_ytd": 34.50,
+            "is_default": False,
+            "created_at": now,
+        },
+        {
+            "_id": ObjectId(),
+            "user_id": uid,
+            "card_name": "Wells Fargo Active Cash",
+            "issuer": "Wells Fargo",
+            "card_type": "credit",
+            "last4": "5521",
+            "base_reward_pct": 2.0,
+            "category_bonuses": {},
+            "quarterly_rotating": {},
+            "quarterly_label": None,
+            "quarterly_cap": None,
+            "quarterly_spent": 0.0,
+            "annual_fee": 0.0,
+            "rewards_earned_ytd": 52.80,
+            "is_default": True,
+            "created_at": now,
+        },
+        {
+            "_id": ObjectId(),
+            "user_id": uid,
+            "card_name": "Wells Fargo Debit",
+            "issuer": "Wells Fargo",
+            "card_type": "debit",
+            "last4": "9903",
+            "base_reward_pct": 0.0,
+            "category_bonuses": {},
+            "quarterly_rotating": {},
+            "quarterly_label": None,
+            "quarterly_cap": None,
+            "quarterly_spent": 0.0,
+            "annual_fee": 0.0,
+            "rewards_earned_ytd": 0.0,
+            "is_default": False,
+            "created_at": now,
+        },
+    ]
+    await db.user_cards.insert_many(user_cards)
 
+    # ── Daily Snapshots (30+ days of history) ─────────────────
+    snapshots = []
+    base_nw = 4800.0
+    for day_offset in range(90, -1, -1):
+        snap_date = (now - timedelta(days=day_offset)).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        drift = (90 - day_offset) * 6.3 + random.uniform(-30, 30)
+        nw = round(base_nw + drift, 2)
+        day_of_month = snap_date.day
+        spent_pace = round(day_of_month * 62.0 + random.uniform(-20, 20), 2)
+        income_pace = 1200.0 if day_of_month > 14 else (2400.0 if day_of_month > 28 else 1200.0)
+        snapshots.append({
+            "_id": ObjectId(),
+            "user_id": uid,
+            "date": snap_date,
+            "net_worth": nw,
+            "checking_balance": round(1850 + random.uniform(-300, 400), 2),
+            "month_spent": spent_pace,
+            "month_income": income_pace,
+            "monthly_budget": 2000.0,
+        })
+    await db.daily_snapshots.insert_many(snapshots)
+
+    # ── Indexes ───────────────────────────────────────────────
+    await db.users.create_index("email", unique=True)
+    await db.daily_snapshots.create_index([("user_id", 1), ("date", -1)])
+    await db.user_cards.create_index([("user_id", 1)])
+
+    # ── Summary ───────────────────────────────────────────────
     user_count = await db.users.count_documents({})
     account_count = await db.accounts.count_documents({})
     card_count = await db.virtual_cards.count_documents({})
     sub_count = await db.subscriptions.count_documents({})
     txn_count = await db.transactions.count_documents({})
     alert_count = await db.anomaly_alerts.count_documents({})
+    snapshot_count = await db.daily_snapshots.count_documents({})
+    user_card_count = await db.user_cards.count_documents({})
 
     demo_token = create_access_token(str(user_id))
 
@@ -554,25 +677,26 @@ async def seed() -> None:
     print("=" * 60)
     print("VERAFUND DATABASE SEEDED SUCCESSFULLY")
     print("=" * 60)
-    print(f"  Users:         {user_count}")
-    print(f"  Accounts:      {account_count}")
-    print(f"  Virtual Cards: {card_count}")
-    print(f"  Subscriptions: {sub_count}")
-    print(f"  Transactions:  {txn_count}")
-    print(f"  Alerts:        {alert_count}")
+    print(f"  Users:           {user_count}")
+    print(f"  Accounts:        {account_count}")
+    print(f"  Virtual Cards:   {card_count}")
+    print(f"  Subscriptions:   {sub_count}")
+    print(f"  Transactions:    {txn_count}")
+    print(f"  Alerts:          {alert_count}")
+    print(f"  Daily Snapshots: {snapshot_count}")
+    print(f"  User Cards:      {user_card_count}")
     print()
     print(f"  USER ID: {user_id}")
+    print()
+    print("  Persona: Alex Chen, 21, CS junior")
+    print("  Works:   Campus IT Help Desk, $20/hr, 30 hrs/wk")
+    print("  Income:  ~$2,600/mo gross, ~$2,130 net")
     print()
     print("  Demo login credentials:")
     print("    Email:    alex@verafunddemo.com")
     print("    Password: demo123")
     print()
-    print("  Auth endpoints:")
-    print("    POST /api/auth/login   {\"email\": \"alex@verafunddemo.com\", \"password\": \"demo123\"}")
-    print("    POST /api/auth/signup  {\"name\": \"...\", \"email\": \"...\", \"password\": \"...\"}")
-    print("    GET  /api/auth/me      (Bearer token required)")
-    print()
-    print(f"  Demo JWT token (valid {24}h):")
+    print(f"  Demo JWT token (valid 24h):")
     print(f"    {demo_token}")
     print("=" * 60)
 

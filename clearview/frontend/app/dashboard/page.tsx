@@ -32,8 +32,8 @@ import {
   clearAuth,
   fetchDashboard,
   postDashboardEvent,
+  fetchMonthlyTrend,
   type DashboardData,
-  type Transaction,
   type UpcomingBill,
   type ActionItem,
 } from "@/lib/api";
@@ -41,6 +41,9 @@ import { DailySnapshotBanner } from "@/components/dashboard/DailySnapshotBanner"
 import { ActionCenterCard } from "@/components/dashboard/ActionCenterCard";
 import { BudgetPulseCard } from "@/components/dashboard/BudgetPulseCard";
 import { BillsRiskCard } from "@/components/dashboard/BillsRiskCard";
+import { CardOptimizerWidget } from "@/components/dashboard/CardOptimizerWidget";
+import { SpendingPredictionCard } from "@/components/dashboard/SpendingPredictionCard";
+import { CashFlowForecast } from "@/components/dashboard/CashFlowForecast";
 import { useChartColors } from "@/lib/useChartColors";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -89,6 +92,7 @@ function StatCard({
 export default function DashboardOverview() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [monthlyTrend, setMonthlyTrend] = useState<{ month: string; income: number; spending: number }[]>([]);
   const chartColors = useChartColors();
 
   useEffect(() => {
@@ -104,6 +108,9 @@ export default function DashboardOverview() {
         }
       })
       .finally(() => setLoading(false));
+    fetchMonthlyTrend(uid)
+      .then((res) => setMonthlyTrend(res.trend))
+      .catch(() => {});
   }, []);
 
   if (loading) {
@@ -163,19 +170,6 @@ export default function DashboardOverview() {
   const now = new Date();
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-  const monthlyTrend: { month: string; income: number; spending: number }[] = [];
-  for (let i = 5; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const label = monthNames[d.getMonth()];
-    const monthTx = recent_transactions.filter((tx) => {
-      const txd = new Date(tx.date);
-      return txd.getMonth() === d.getMonth() && txd.getFullYear() === d.getFullYear();
-    });
-    const income = monthTx.filter((tx) => tx.amount > 0).reduce((s, tx) => s + tx.amount, 0);
-    const spending = monthTx.filter((tx) => tx.amount < 0).reduce((s, tx) => s + Math.abs(tx.amount), 0);
-    monthlyTrend.push({ month: label, income: Math.round(income), spending: Math.round(spending) });
-  }
-
   const handleActionClick = (action: ActionItem) => {
     const uid = getUserId();
     if (uid) {
@@ -183,11 +177,14 @@ export default function DashboardOverview() {
     }
   };
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-foreground">
-          Good morning, {userName.split(" ")[0]}
+        <h1 className="text-2xl font-bold text-foreground" suppressHydrationWarning>
+          {greeting}, {userName.split(" ")[0]}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">
           Here&apos;s your financial overview for {monthNames[now.getMonth()]} {now.getFullYear()}
@@ -310,6 +307,11 @@ export default function DashboardOverview() {
         </div>
       )}
 
+      <div className="grid grid-cols-2 gap-4">
+        <SpendingPredictionCard />
+        <CashFlowForecast />
+      </div>
+
       <div className="grid grid-cols-3 gap-4">
         <div className="rounded-2xl bg-card border border-border p-5">
           <div className="flex items-center justify-between mb-4">
@@ -421,6 +423,8 @@ export default function DashboardOverview() {
       )}
 
       <div className="grid grid-cols-3 gap-4">
+        <CardOptimizerWidget />
+
         <div className="rounded-2xl bg-card border border-border p-5">
           <h3 className="text-sm font-bold text-foreground mb-4">Financial Pulse</h3>
           <div className="space-y-4">

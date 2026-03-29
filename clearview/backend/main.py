@@ -35,12 +35,19 @@ for module_name in ["auth", "advisor", "cards", "alerts", "voice", "transactions
 
 @app.on_event("startup")
 async def _ensure_indexes():
+    if settings.JWT_SECRET_KEY == "change-me-in-production":
+        _logger.warning(
+            "JWT_SECRET_KEY is set to the insecure default. "
+            "Set a strong secret in your .env for production."
+        )
     from database import get_database
     db = get_database()
     try:
         await db.purchase_analyses.create_index([("user_id", 1), ("created_at", -1)])
         await db.dashboard_events.create_index([("user_id", 1), ("created_at", -1)])
         await db.notifications.create_index([("user_id", 1), ("is_read", 1), ("created_at", -1)])
+        await db.daily_snapshots.create_index([("user_id", 1), ("date", -1)])
+        await db.user_cards.create_index([("user_id", 1)])
     except Exception as exc:
         _logger.warning("Index creation skipped: %s", exc)
 

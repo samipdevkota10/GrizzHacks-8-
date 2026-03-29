@@ -12,13 +12,13 @@ import {
   Receipt,
   Target,
   LogOut,
-  Search,
   UserCircle,
   ChevronUp,
 } from "lucide-react";
 import { getUserId, getToken, clearAuth, fetchDashboard, type AppNotification } from "@/lib/api";
 import { NotificationPanel } from "@/components/NotificationPanel";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { SearchBar } from "@/components/dashboard/SearchBar";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
@@ -177,14 +177,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       <div className="flex-1 flex flex-col overflow-hidden" suppressHydrationWarning>
         {/* Top bar */}
         <header className="h-16 border-b border-border bg-card flex items-center justify-between px-6 flex-shrink-0">
-          <div className="relative w-72" suppressHydrationWarning>
-            <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="Search transactions, cards..."
-              className="w-full rounded-xl bg-background border border-border pl-9 pr-4 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
-            />
-          </div>
+          <SearchBar />
           <div className="flex items-center gap-4" suppressHydrationWarning>
             <ThemeToggle />
             <NotificationPanel

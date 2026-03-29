@@ -13,6 +13,29 @@ from services.action_center import (
     build_daily_snapshot,
 )
 
+
+def _next_pay_date(last_pay: datetime, frequency: str, ref: datetime) -> int:
+    """Return days until next paycheck from ref date."""
+    if frequency == "biweekly":
+        d = last_pay
+        while d <= ref:
+            d += timedelta(days=14)
+        return (d - ref).days
+    if frequency == "weekly":
+        d = last_pay
+        while d <= ref:
+            d += timedelta(days=7)
+        return (d - ref).days
+    if frequency == "monthly":
+        d = last_pay
+        while d <= ref:
+            if d.month == 12:
+                d = d.replace(year=d.year + 1, month=1)
+            else:
+                d = d.replace(month=d.month + 1)
+        return (d - ref).days
+    return max(0, 15 - (ref.day % 15))
+
 router = APIRouter(prefix="/api", tags=["dashboard"])
 
 
@@ -107,13 +130,39 @@ async def get_dashboard(user_id: str):
     bill_risk = build_bill_risk(subscriptions, checking_balance, now)
     user_name = user.get("name", "User")
 
+    # Look up 30-day-ago snapshot for real deltas
+    thirty_days_ago = now - timedelta(days=30)
+    old_snapshot = await db.daily_snapshots.find_one(
+        {"user_id": uid, "date": {"$lte": thirty_days_ago}},
+        sort=[("date", -1)],
+    )
+    nw_30d_ago = old_snapshot["net_worth"] if old_snapshot else net_worth
+    income_30d_ago = old_snapshot.get("month_income", 0) if old_snapshot else 0
+
+    # Save today's snapshot (idempotent per day)
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    existing_snap = await db.daily_snapshots.find_one(
+        {"user_id": uid, "date": today_start}
+    )
+    if not existing_snap:
+        await db.daily_snapshots.insert_one({
+            "_id": ObjectId(),
+            "user_id": uid,
+            "date": today_start,
+            "net_worth": net_worth,
+            "checking_balance": checking_balance,
+            "month_spent": month_spent,
+            "month_income": month_income,
+            "monthly_budget": budget,
+        })
+
     daily_snapshot = build_daily_snapshot(
         net_worth=net_worth,
-        net_worth_30d_ago=net_worth,
+        net_worth_30d_ago=nw_30d_ago,
         month_spent=month_spent,
         monthly_budget=budget,
         month_income=month_income,
-        month_income_30d_ago=0,
+        month_income_30d_ago=income_30d_ago,
         user_name=user_name,
     )
 
@@ -152,7 +201,11 @@ async def get_dashboard(user_id: str):
             "avg_daily_spend": round(avg_daily, 2),
             "top_category": top_category[0],
             "top_category_amount": round(top_category[1], 2),
-            "days_until_paycheck": max(0, 15 - (now.day % 15)),
+            "days_until_paycheck": _next_pay_date(
+                profile.get("last_pay_date", now),
+                profile.get("pay_frequency", "biweekly"),
+                now,
+            ) if profile else max(0, 15 - (now.day % 15)),
         },
         "net_worth": net_worth,
         "daily_snapshot": daily_snapshot,
@@ -160,6 +213,40 @@ async def get_dashboard(user_id: str):
         "budget_pulse": budget_pulse,
         "bill_risk": bill_risk,
     }
+
+
+@router.get("/dashboard/{user_id}/monthly-trend")
+async def get_monthly_trend(user_id: str, months: int = 6):
+    """Aggregate income/spending per month from ALL transactions (not just recent)."""
+    db = get_database()
+    uid = parse_user_object_id(user_id)
+    now = datetime.utcnow()
+    month_names = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+    result = []
+    for i in range(months - 1, -1, -1):
+        mm = now.month - i
+        yy = now.year
+        while mm <= 0:
+            mm += 12
+            yy -= 1
+        m_start = datetime(yy, mm, 1)
+        if mm == 12:
+            m_end = datetime(yy + 1, 1, 1)
+        else:
+            m_end = datetime(yy, mm + 1, 1)
+        txns = await db.transactions.find({
+            "user_id": uid,
+            "date": {"$gte": m_start, "$lt": m_end},
+        }).to_list(500)
+        income = sum(t["amount"] for t in txns if t["amount"] > 0)
+        spending = sum(abs(t["amount"]) for t in txns if t["amount"] < 0)
+        result.append({
+            "month": month_names[mm - 1],
+            "income": round(income),
+            "spending": round(spending),
+        })
+    return {"trend": result}
 
 
 @router.post("/dashboard/events")

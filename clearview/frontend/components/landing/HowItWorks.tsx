@@ -30,7 +30,7 @@ const HowItWorks = () => {
   const [activeStep, setActiveStep] = useState(0);
 
   return (
-    <section className="py-20 px-4 bg-background" ref={ref}>
+    <section id="how-it-works" className="py-20 px-4 bg-background" ref={ref}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <motion.div

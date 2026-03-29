@@ -10,6 +10,12 @@ class FinancialProfile(BaseModel):
     user_id: str
     monthly_income: float
     monthly_budget: float
+    hourly_rate: float = 0.0
+    tax_rate: float = 0.22
+    employment_type: str = "full-time"
+    employer_name: str = ""
+    pay_frequency: str = "biweekly"
+    last_pay_date: datetime | None = None
     category_budgets: dict[str, float]
     net_worth: float
     total_assets: float

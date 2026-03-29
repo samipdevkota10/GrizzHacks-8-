@@ -447,6 +447,137 @@ export function purchaseCheck(
   return postForm<PurchaseCheckResponse>("/api/advisor/purchase-check", fd);
 }
 
+// ── Purchase History & Wishlist ───────────────────────────────
+
+export function fetchPurchaseHistory(
+  userId: string,
+  limit = 10,
+): Promise<{ analyses: { _id: string; product: string; price: number; verdict: string; created_at: string; confidence?: number | null; corrected_by_user?: boolean }[] }> {
+  return get(`/api/advisor/purchase-history/${userId}?limit=${limit}`);
+}
+
+export function fetchWishlist(
+  userId: string,
+): Promise<{ items: { _id: string; product: string; price: number; verdict: string; created_at: string }[] }> {
+  return get(`/api/advisor/wishlist/${userId}`);
+}
+
+export function addToWishlist(payload: {
+  user_id: string;
+  product: string;
+  price: number;
+  verdict: string;
+  reasoning: string;
+  analysis_id?: string;
+}): Promise<{ status: string }> {
+  return post("/api/advisor/wishlist", payload);
+}
+
+export function removeFromWishlist(itemId: string): Promise<{ status: string }> {
+  return del(`/api/advisor/wishlist/${itemId}`);
+}
+
+export function scanReceipt(
+  userId: string,
+  imageFile: File,
+): Promise<Record<string, unknown>> {
+  const fd = new FormData();
+  fd.append("user_id", userId);
+  fd.append("image", imageFile);
+  return postForm("/api/advisor/scan-receipt", fd);
+}
+
+export function confirmReceipt(scanId: string): Promise<{ status: string }> {
+  return post(`/api/advisor/scan-receipt/${scanId}/confirm`, {});
+}
+
+// ── Card Optimizer ───────────────────────────────────────────
+
+export interface CardRecommendation {
+  card_name: string;
+  issuer: string;
+  last4: string;
+  effective_reward_pct: number;
+  cashback_amount: number;
+  quarterly_info: string | null;
+  is_best: boolean;
+}
+
+export function fetchCardRecommendation(
+  userId: string,
+  category: string,
+  amount: number,
+): Promise<{ recommendations: CardRecommendation[] }> {
+  return get(`/api/card-optimizer/${userId}/recommend?category=${encodeURIComponent(category)}&amount=${amount}`);
+}
+
+export function fetchWeeklyDigest(
+  userId: string,
+): Promise<{ digest: Record<string, unknown> }> {
+  return get(`/api/card-optimizer/${userId}/weekly-digest`);
+}
+
+// ── Predictions ──────────────────────────────────────────────
+
+export interface CategoryPrediction {
+  category: string;
+  predicted: number;
+  budgeted: number;
+  over_budget: boolean;
+}
+
+export interface NextMonthPrediction {
+  predictions: CategoryPrediction[];
+  total_predicted: number;
+  total_budget: number;
+}
+
+export function fetchNextMonthPrediction(
+  userId: string,
+): Promise<NextMonthPrediction> {
+  return get(`/api/predictions/${userId}/next-month`);
+}
+
+export interface CashFlowDay {
+  date: string;
+  balance: number;
+  event: string | null;
+}
+
+export function fetchCashFlowForecast(
+  userId: string,
+): Promise<{ forecast: CashFlowDay[]; danger_zone_threshold: number }> {
+  return get(`/api/predictions/${userId}/cash-flow`);
+}
+
+// ── Search ───────────────────────────────────────────────────
+
+export interface SearchResult {
+  type: "transaction" | "subscription" | "card";
+  _id: string;
+  title: string;
+  subtitle: string;
+  amount?: number;
+  date?: string;
+  route: string;
+}
+
+export function searchDashboard(
+  userId: string,
+  query: string,
+): Promise<{ results: SearchResult[] }> {
+  return get(`/api/search/${userId}?q=${encodeURIComponent(query)}`);
+}
+
+// ── Monthly Trend ────────────────────────────────────────────
+
+export function fetchMonthlyTrend(
+  userId: string,
+  months = 6,
+): Promise<{ trend: { month: string; income: number; spending: number }[] }> {
+  return get(`/api/dashboard/${userId}/monthly-trend?months=${months}`);
+}
+
 // ── Advisor Voice Calls ──────────────────────────────────────
 
 export type AdvisorCallStatus = "calling" | "completed" | "no_answer" | "failed" | "mock";
