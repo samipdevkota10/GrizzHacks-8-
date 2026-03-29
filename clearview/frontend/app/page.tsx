@@ -4,7 +4,6 @@ import LogoMarquee from "@/components/landing/LogoMarquee";
 import FeaturesSection from "@/components/landing/FeaturesSection";
 import HowItWorks from "@/components/landing/HowItWorks";
 import IntegrationSection from "@/components/landing/IntegrationSection";
-import TestimonialsSection from "@/components/landing/TestimonialsSection";
 import CTASection from "@/components/landing/CTASection";
 import Footer from "@/components/landing/Footer";
 
@@ -17,7 +16,6 @@ export default function Home() {
       <FeaturesSection />
       <HowItWorks />
       <IntegrationSection />
-      <TestimonialsSection />
       <CTASection />
       <Footer />
     </div>

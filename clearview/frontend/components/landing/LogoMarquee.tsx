@@ -1,27 +1,104 @@
 "use client";
 
-const logos = [
-  "/images/logo1.png",
-  "/images/logo2.png",
-  "/images/logo3.png",
-  "/images/logo4.png",
-  "/images/logo5.png",
-  "/images/logo6.png",
-  "/images/logo7.png",
-  "/images/logo8.png",
+const TECH_LOGOS = [
+  {
+    name: "Google Gemini",
+    svg: (
+      <svg viewBox="0 0 100 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
+        <circle cx="10" cy="10" r="6" fill="currentColor" fillOpacity="0.15"/>
+        <circle cx="10" cy="10" r="3" fill="currentColor" fillOpacity="0.4"/>
+        <text x="22" y="15" fontSize="13" fontWeight="600" fill="currentColor" fontFamily="system-ui">Gemini</text>
+      </svg>
+    ),
+  },
+  {
+    name: "ElevenLabs",
+    svg: (
+      <svg viewBox="0 0 110 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
+        <rect x="2" y="3" width="3" height="14" rx="1.5" fill="currentColor" fillOpacity="0.4"/>
+        <rect x="8" y="6" width="3" height="8" rx="1.5" fill="currentColor" fillOpacity="0.3"/>
+        <text x="16" y="15" fontSize="13" fontWeight="600" fill="currentColor" fontFamily="system-ui">ElevenLabs</text>
+      </svg>
+    ),
+  },
+  {
+    name: "Plaid",
+    svg: (
+      <svg viewBox="0 0 60 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
+        <rect x="1" y="3" width="5" height="5" rx="1" fill="currentColor" fillOpacity="0.35"/>
+        <rect x="7" y="3" width="5" height="5" rx="1" fill="currentColor" fillOpacity="0.2"/>
+        <rect x="1" y="10" width="5" height="5" rx="1" fill="currentColor" fillOpacity="0.2"/>
+        <rect x="7" y="10" width="5" height="5" rx="1" fill="currentColor" fillOpacity="0.35"/>
+        <text x="17" y="15" fontSize="13" fontWeight="600" fill="currentColor" fontFamily="system-ui">Plaid</text>
+      </svg>
+    ),
+  },
+  {
+    name: "Stripe",
+    svg: (
+      <svg viewBox="0 0 70 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
+        <path d="M5 14C5 14 7 6 12 6C14 6 14 8 12 12C10 16 14 16 14 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" fill="none" opacity="0.4"/>
+        <text x="20" y="15" fontSize="13" fontWeight="600" fill="currentColor" fontFamily="system-ui">Stripe</text>
+      </svg>
+    ),
+  },
+  {
+    name: "MongoDB",
+    svg: (
+      <svg viewBox="0 0 90 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
+        <path d="M8 2L10 8L8 18L6 8Z" fill="currentColor" fillOpacity="0.3"/>
+        <line x1="8" y1="2" x2="8" y2="18" stroke="currentColor" strokeWidth="1.5" opacity="0.4"/>
+        <text x="16" y="15" fontSize="13" fontWeight="600" fill="currentColor" fontFamily="system-ui">MongoDB</text>
+      </svg>
+    ),
+  },
+  {
+    name: "Vercel",
+    svg: (
+      <svg viewBox="0 0 70 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
+        <path d="M3 16L10 4L17 16Z" fill="currentColor" fillOpacity="0.35"/>
+        <text x="22" y="15" fontSize="13" fontWeight="600" fill="currentColor" fontFamily="system-ui">Vercel</text>
+      </svg>
+    ),
+  },
+  {
+    name: "Railway",
+    svg: (
+      <svg viewBox="0 0 80 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
+        <rect x="3" y="6" width="12" height="3" rx="1" fill="currentColor" fillOpacity="0.3" transform="rotate(-20 9 7.5)"/>
+        <rect x="3" y="11" width="12" height="3" rx="1" fill="currentColor" fillOpacity="0.25" transform="rotate(-20 9 12.5)"/>
+        <text x="18" y="15" fontSize="13" fontWeight="600" fill="currentColor" fontFamily="system-ui">Railway</text>
+      </svg>
+    ),
+  },
+  {
+    name: "Next.js",
+    svg: (
+      <svg viewBox="0 0 70 20" fill="none" xmlns="http://www.w3.org/2000/svg" className="h-5 w-auto">
+        <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="1.5" opacity="0.3" fill="none"/>
+        <path d="M7 14V6L15 16" stroke="currentColor" strokeWidth="1.5" opacity="0.5" strokeLinecap="round"/>
+        <line x1="13" y1="6" x2="13" y2="11" stroke="currentColor" strokeWidth="1.5" opacity="0.5" strokeLinecap="round"/>
+        <text x="22" y="15" fontSize="13" fontWeight="600" fill="currentColor" fontFamily="system-ui">Next.js</text>
+      </svg>
+    ),
+  },
 ];
 
 const LogoMarquee = () => {
   return (
-    <section className="py-10 overflow-hidden bg-background">
+    <section className="py-8 overflow-hidden bg-background">
       <div className="relative">
+        {/* Gradient fades on edges */}
+        <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-background to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-24 bg-gradient-to-l from-background to-transparent z-10 pointer-events-none" />
+
         <div className="flex animate-marquee whitespace-nowrap">
-          {[...logos, ...logos].map((logo, i) => (
+          {[...TECH_LOGOS, ...TECH_LOGOS, ...TECH_LOGOS].map((logo, i) => (
             <div
               key={i}
-              className="flex-shrink-0 mx-8 flex items-center justify-center h-8 opacity-50 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-300"
+              className="flex-shrink-0 mx-8 flex items-center justify-center text-muted-foreground opacity-50 hover:opacity-100 transition-opacity duration-300"
             >
-              <img src={logo} alt="Partner logo" className="h-6 w-auto object-contain" />
+              {logo.svg}
             </div>
           ))}
         </div>

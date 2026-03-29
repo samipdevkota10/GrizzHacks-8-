@@ -20,46 +20,6 @@ const AnimatedBlock = ({ children, delay = 0, className = "" }: { children: Reac
   );
 };
 
-const users = [
-  { name: "Marvin McKinney", handle: "@mcKinney", img: "/images/user-marvin.png" },
-  { name: "Eleanor Pena", handle: "@pena", img: "/images/user-eleanor.png" },
-  { name: "Leslie Alexander", handle: "@alexander", img: "/images/user-leslie.png" },
-  { name: "Courtney Henry", handle: "@henry", img: "/images/user-courtney.png" },
-  { name: "Jenny Wilson", handle: "@wilson", img: "/images/user-jenny.png" },
-];
-
-const UserMarquee = () => (
-  <div className="overflow-hidden py-4">
-    <div className="flex animate-marquee whitespace-nowrap">
-      {[...users, ...users, ...users].map((user, i) => (
-        <div key={i} className="flex items-center gap-3 mx-4 flex-shrink-0 bg-card rounded-full border border-border px-4 py-2">
-          <img src={user.img} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-foreground whitespace-nowrap">{user.name}</span>
-            <span className="text-[10px] text-muted-foreground">{user.handle}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
-const UserMarqueeReverse = () => (
-  <div className="overflow-hidden py-4">
-    <div className="flex animate-marquee-reverse whitespace-nowrap">
-      {[...users.slice().reverse(), ...users.slice().reverse(), ...users.slice().reverse()].map((user, i) => (
-        <div key={i} className="flex items-center gap-3 mx-4 flex-shrink-0 bg-card rounded-full border border-border px-4 py-2">
-          <img src={user.img} alt={user.name} className="w-8 h-8 rounded-full object-cover" />
-          <div className="flex flex-col">
-            <span className="text-xs font-semibold text-foreground whitespace-nowrap">{user.name}</span>
-            <span className="text-[10px] text-muted-foreground">{user.handle}</span>
-          </div>
-        </div>
-      ))}
-    </div>
-  </div>
-);
-
 const FeaturesSection = () => {
   return (
     <section id="features" className="py-20 px-4 bg-background">
@@ -108,12 +68,6 @@ const FeaturesSection = () => {
             </div>
           </AnimatedBlock>
         </div>
-
-        {/* User Avatar Marquees */}
-        <AnimatedBlock delay={0.25} className="mb-6">
-          <UserMarquee />
-          <UserMarqueeReverse />
-        </AnimatedBlock>
 
         {/* Feature Grid - Row 2 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
