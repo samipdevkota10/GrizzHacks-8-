@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   TrendingUp,
   TrendingDown,
@@ -14,6 +14,7 @@ import {
   Plane,
   GraduationCap,
   Target,
+  Loader2,
 } from "lucide-react";
 import { MerchantLogo } from "@/components/MerchantLogo";
 import {
@@ -34,8 +35,11 @@ import {
   fetchDashboard,
   postDashboardEvent,
   fetchMonthlyTrend,
+  fetchFraudAlerts,
+  triggerTestFraud,
   type DashboardData,
   type ActionItem,
+  type FraudAlert,
 } from "@/lib/api";
 import { DailySnapshotBanner } from "@/components/dashboard/DailySnapshotBanner";
 import { ActionCenterCard } from "@/components/dashboard/ActionCenterCard";
@@ -44,6 +48,7 @@ import { BillsRiskCard } from "@/components/dashboard/BillsRiskCard";
 import { CardOptimizerWidget } from "@/components/dashboard/CardOptimizerWidget";
 import { SpendingPredictionCard } from "@/components/dashboard/SpendingPredictionCard";
 import { CashFlowForecast } from "@/components/dashboard/CashFlowForecast";
+import { FraudAlertBanner } from "@/components/dashboard/FraudAlertBanner";
 import { useChartColors } from "@/lib/useChartColors";
 
 const CATEGORY_COLORS: Record<string, string> = {
@@ -128,13 +133,27 @@ export default function DashboardOverview() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [monthlyTrend, setMonthlyTrend] = useState<{ month: string; income: number; spending: number }[]>([]);
+  const [fraudAlerts, setFraudAlerts] = useState<FraudAlert[]>([]);
+  const [testingFraud, setTestingFraud] = useState(false);
+  const [testFraudResult, setTestFraudResult] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const chartColors = useChartColors();
+
+  const refreshFraudAlerts = useCallback(async (uid: string) => {
+    try {
+      const res = await fetchFraudAlerts(uid);
+      setFraudAlerts(res.fraud_alerts || []);
+    } catch { /* silent */ }
+  }, []);
 
   useEffect(() => {
     const uid = getUserId();
     if (!uid) { setLoading(false); return; }
     fetchDashboard(uid)
-      .then(setData)
+      .then((d) => {
+        setData(d);
+        setFraudAlerts(d.fraud_alerts || []);
+      })
       .catch((err: unknown) => {
         const msg = err instanceof Error ? err.message : "";
         if (msg.includes("404") || msg.includes("401")) {
@@ -146,7 +165,42 @@ export default function DashboardOverview() {
     fetchMonthlyTrend(uid)
       .then((res) => setMonthlyTrend(res.trend))
       .catch(() => {});
-  }, []);
+
+    // Poll fraud alerts every 6 seconds to pick up call status changes live
+    pollRef.current = setInterval(() => refreshFraudAlerts(uid), 6000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+  }, [refreshFraudAlerts]);
+
+  const handleTestFraud = async () => {
+    setTestingFraud(true);
+    setTestFraudResult(null);
+    try {
+      const result = await triggerTestFraud() as {
+        call_result?: { success?: boolean; mock?: boolean; message?: string; status_code?: number };
+        call_error?: string;
+        detection_risk_score?: number;
+        detection_severity?: string;
+        fraud_alert_id?: string;
+      };
+      const callRes = result.call_result || {};
+      if (result.call_error) {
+        setTestFraudResult(`Error: ${result.call_error}`);
+      } else if (callRes.success === false) {
+        setTestFraudResult(`Call failed (${callRes.status_code || "?"}): ${callRes.message}`);
+      } else if (callRes.mock) {
+        setTestFraudResult("ElevenLabs not configured — mock call triggered. Check backend logs.");
+      } else {
+        setTestFraudResult(`Call initiated! Risk: ${result.detection_risk_score}/100 (${result.detection_severity}). Alert ID: ${result.fraud_alert_id?.slice(-8)}`);
+      }
+      // Refresh fraud alerts immediately after test
+      const uid = getUserId();
+      if (uid) await refreshFraudAlerts(uid);
+    } catch (e) {
+      setTestFraudResult(`Request failed: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setTestingFraud(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -225,6 +279,37 @@ export default function DashboardOverview() {
           Here&apos;s your financial overview for {monthNames[now.getMonth()]} {now.getFullYear()}
         </p>
       </div>
+
+      {fraudAlerts.length > 0 && (
+        <FraudAlertBanner
+          alerts={fraudAlerts}
+          onResolved={() => {
+            const uid = getUserId();
+            if (uid) refreshFraudAlerts(uid);
+          }}
+        />
+      )}
+
+      {/* Demo fraud test button — only shown when no active alerts */}
+      {fraudAlerts.filter((a) => a.status !== "resolved").length === 0 && (
+        <div className="flex items-center gap-3 p-3 rounded-xl border border-dashed border-border bg-muted/30">
+          <ShieldAlert size={15} className="text-muted-foreground flex-shrink-0" />
+          <p className="text-xs text-muted-foreground flex-1">Demo: trigger a mock fraudulent transaction to test the Vera call system.</p>
+          <button
+            onClick={handleTestFraud}
+            disabled={testingFraud}
+            className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+          >
+            {testingFraud ? <Loader2 size={12} className="animate-spin" /> : <ShieldAlert size={12} />}
+            {testingFraud ? "Triggering…" : "Simulate Fraud"}
+          </button>
+          {testFraudResult && (
+            <span className={`text-[10px] font-medium max-w-xs truncate ${testFraudResult.startsWith("Call initiated") ? "text-green-600" : "text-red-500"}`}>
+              {testFraudResult}
+            </span>
+          )}
+        </div>
+      )}
 
       {data.daily_snapshot && <DailySnapshotBanner snapshot={data.daily_snapshot} />}
 

@@ -179,16 +179,24 @@ class ElevenLabsService:
                 msg = err_body.get("detail") or err_body.get("message") or str(err_body)
             except Exception:
                 msg = (response.text or "")[:500] or f"HTTP {response.status_code}"
-            logger.warning(
-                "ElevenLabs outbound HTTP %s: %s",
+            logger.error(
+                "ElevenLabs outbound HTTP %s: %s | phone=%s agent=%s phnum_id=%s",
                 response.status_code,
                 msg,
+                normalized,
+                self.agent_id,
+                self.phone_number_id,
             )
             return {
                 "success": False,
                 "message": str(msg),
                 "status_code": response.status_code,
                 "mock": False,
+                "debug": {
+                    "to_number": normalized,
+                    "agent_id": self.agent_id,
+                    "phone_number_id": self.phone_number_id,
+                },
             }
 
         try:

@@ -237,7 +237,7 @@ export interface DashboardData {
   user: Record<string, unknown>;
   financial_profile: Record<string, unknown> | null;
   accounts: Record<string, unknown>[];
-  subscriptions: Record<string, unknown>[];
+  subscriptions: Subscription[];
   recent_transactions: Transaction[];
   virtual_cards: VirtualCard[];
   pending_alerts: Record<string, unknown>[];
@@ -250,6 +250,24 @@ export interface DashboardData {
   action_center?: ActionItem[];
   budget_pulse?: BudgetPulse;
   bill_risk?: BillRisk;
+  fraud_alerts?: FraudAlert[];
+}
+
+export interface FraudAlert {
+  _id: string;
+  user_id: string;
+  transaction_id: string;
+  virtual_card_id?: string | null;
+  amount: number;
+  merchant_name: string;
+  category: string;
+  reason: string;
+  severity: 'high' | 'medium';
+  risk_score: number;
+  status: 'pending' | 'calling' | 'call_failed' | 'resolved';
+  resolution?: 'user_confirmed' | 'user_denied' | 'no_answer' | null;
+  created_at: string;
+  call_resolved_at?: string | null;
 }
 
 export interface MonthlySummary {
@@ -710,4 +728,21 @@ export function fetchProfile(): Promise<Record<string, unknown>> {
 
 export function updateProfile(payload: Record<string, unknown>): Promise<Record<string, unknown>> {
   return patch("/api/auth/profile", payload);
+}
+
+// ── Fraud Alerts ─────────────────────────────────────────────
+
+export function fetchFraudAlerts(userId: string): Promise<{ fraud_alerts: FraudAlert[] }> {
+  return get(`/api/vera/alerts/${userId}`);
+}
+
+export function resolveFraudAlert(
+  fraudAlertId: string,
+  resolution: "user_confirmed" | "user_denied",
+): Promise<Record<string, unknown>> {
+  return post("/api/vera/call-result", { fraud_alert_id: fraudAlertId, resolution });
+}
+
+export function triggerTestFraud(): Promise<Record<string, unknown>> {
+  return post("/api/admin/test-fraud", {});
 }

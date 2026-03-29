@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Search, ShieldAlert, ShieldOff, ShieldCheck } from "lucide-react";
 import { getUserId, fetchTransactions, type Transaction } from "@/lib/api";
 import { MerchantLogo } from "@/components/MerchantLogo";
@@ -32,14 +32,22 @@ export default function TransactionsPage() {
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("All");
   const [search, setSearch] = useState("");
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     const uid = getUserId();
     if (!uid) { setLoading(false); return; }
-    fetchTransactions(uid)
-      .then((res) => setTransactions(res.transactions))
-      .catch(console.error)
-      .finally(() => setLoading(false));
+
+    const load = () =>
+      fetchTransactions(uid)
+        .then((res) => setTransactions(res.transactions))
+        .catch(console.error);
+
+    load().finally(() => setLoading(false));
+
+    // Auto-refresh every 8s so fraud denial → BLOCKED updates without manual reload
+    pollRef.current = setInterval(load, 8000);
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
   const categories = ["All", ...Array.from(new Set(transactions.map((tx) => tx.category)))];
